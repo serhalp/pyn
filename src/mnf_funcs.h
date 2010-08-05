@@ -16,10 +16,20 @@ typedef struct {
     int w, h, n;
 } Grid;
 
+typedef struct {
+    int *a;
+    int n;
+} Array;
+
 void grid_neighbours (int *, int *, int *, int *, int *);
 Grid generate_grid (int, int *, int *);
 inline int grid_get (Grid *, int, int);
 inline void grid_set (Grid *, int, int, int);
+
+void array_neighbours (int *, int *, int *, int *);
+Array generate_array (int, int *);
+
+void map_values (int *, int *, int *, int *);
 
 #endif
 
