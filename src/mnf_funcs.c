@@ -25,6 +25,9 @@ void grid_neighbours (int *n, int *x, int *y, int *k, int *neighbours) {
             thisY = y[i - 1];
         int ni = 0;
 
+        if (thisX == NA_INTEGER)
+            continue;
+
         for (int d = 1; ni < *k; ++d) {
             for (int dk = 0; dk < 2 * d; ++dk) {
                 dx = -d + dk;
@@ -85,7 +88,8 @@ Grid generate_grid (int n, int *x, int *y) {
 
     // Set each probe's cell to its (R, 1-offset) index
     for (int i = 1; i <= n; ++i)
-        grid_set (&grid, x[i - 1], y[i - 1], i);
+        if (x[i - 1] != NA_INTEGER)
+            grid_set (&grid, x[i - 1], y[i - 1], i);
 
     return grid;
 }
@@ -142,6 +146,7 @@ Array generate_array (int n, int *pos) {
 
 void map_values (int *n, int *indices, int *values, int *mapped) {
     for (int i = 0; i < *n; ++i)
-        mapped[i] = values[indices[i] - 1]; // 1-offset to 0-offset
+        if (indices[i] != NA_INTEGER)
+            mapped[i] = values[indices[i] - 1]; // 1-offset to 0-offset
 }
 

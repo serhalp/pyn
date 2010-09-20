@@ -57,44 +57,44 @@ normalize.mnf.RGList <- function (rg, channel, features.i, features.b, probe.fil
 }
 
 normalize.mnf.AffyBatch <- function (batch, channel, features.i, features.b, probe.filter, verbose, ...) {
-    npm <- matrix (nrow = nrow (pm (batch)), ncol = ncol (pm (batch)))
-    nmm <- matrix (nrow = nrow (mm (batch)), ncol = ncol (mm (batch)))
+    cpy <- exprs (batch)
 
     for (e in 1:length (batch)) {
         if (verbose)
-            cat ("Normalizing array ", e, "...\n", sep =  "")
+            cat ("Normalizing array ", e, "...\n", sep = "")
 
-        if (channel %in% c ("pm", "both")) {
-            if (verbose)
-                cat ("  PM...\n")
-            npm[,e] <- normalizeChannel (pm (batch[,e]), features.i = features.i, features.b = features.b, verbose = verbose, ...)
-        }
+        indices <- indexProbes (batch[,e], which = channel)
+        res <- .Call ("affy_residuals", indices, exprs (batch[,e]))
 
-        if (channel %in% c ("mm", "both")) {
-            if (verbose)
-                cat ("  MM...\n")
-            nmm[,e] <- normalizeChannel (mm (batch[,e]), features.i = features.i, features.b = features.b, verbose = verbose, ...)
-        }
+        #indices <- indexProbes (batch[,e], which = channel)
+        #res <- vector (length = nrow (exprs (batch)))
+        #for (ps in indices) {
+        #    if (verbose)
+        #        cat ("Normalizing probeset...\n")
+        #    np <- length (ps)
+        #    for (i in 1:np)
+        #        res[ps[i]] <- exprs (batch[,e])[ps[i]] - median (exprs (batch[,e])[ps[1:np != i]])
+        #}
+
+        cpy[,e] <- normalizeChannel (exprs (batch[,e]), features.i = features.i, features.b = features.b, res = res, verbose = verbose, ...)
     }
-
-    if (channel %in% c ("pm", "both"))
-        pm (batch) <- npm
-    if (channel %in% c ("mm", "both"))
-        mm (batch) <- nmm
 
     if (verbose)
         cat ("All processing complete.\n")
-    batch
+    exprs (batch) <- cpy
+    return (batch)
 }
 
-normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "median", verbose = TRUE) {
+normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "median", res = NULL, verbose = TRUE) {
     if (is.vector (channel) || (is.matrix (channel) && ncol (channel) == 1)) {
         si <- rowify (summaryStatistic.i)
         sb <- rowify (summaryStatistic.b)
 
-        if (verbose)
-            cat ("    Computing residuals...\n")
-        res <- residuals.mnf (channel, features.i, ki, si)
+        if (is.null (res)) {
+            if (verbose)
+                cat ("    Computing residuals...\n")
+            res <- residuals.mnf (channel, features.i, ki, si)
+        }
 
         if (verbose)
             cat ("    Locating neighbours in bias space...\n")
@@ -103,8 +103,13 @@ normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, 
         if (verbose)
             cat ("    Correcting values...\n")
         ncells <- as.integer (prod (dim (neighbours)))
-        mappedRes <- .C ("map_values", ncells, as.integer (neighbours), as.integer (res), as.integer (vector (length = ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
-        channel - sb (matrix (mappedRes, nrow = length (res)))
+        mappedRes <- .C ("map_values", ncells, as.integer (neighbours), as.integer (res), as.integer (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
+
+        b <- !is.na (res)
+        # WTF: rowMeans (and variants) do not work on 1-column matrices
+        # (i.e. kb and ki cannot be == 1)
+        channel[b] <- channel[b] - sb (matrix (mappedRes, nrow = length (res))[b,])
+        channel
     } else {
         stop ("'channel' must be a vector or a 1-column matrix")
     }
@@ -118,7 +123,7 @@ residuals.mnf <- function (channel, pos, k, sumStat) {
 
     neighbours <- knn.mnf (pos, k)
     ncells <- as.integer (prod (dim (neighbours)))
-    mappedVals <- .C ("map_values", ncells, as.integer (neighbours), as.integer (channel), as.integer (vector (length = ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
+    mappedVals <- .C ("map_values", ncells, as.integer (neighbours), as.integer (channel), as.integer (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
     channel - sumStat (matrix (mappedVals, nrow = length (channel)))
 }
 
@@ -133,12 +138,12 @@ knn.mnf <- function (v, k, ...) {
 
 knn.mnf.1D <- function (x, k) {
     n <- length (x)
-    matrix (.C ("array_neighbours", as.integer (n), as.integer (x), as.integer (k), as.integer (vector (length = n * k)), NAOK = TRUE, DUP = FALSE) [[4]], nrow = n, ncol = k, byrow = TRUE)
+    matrix (.C ("array_neighbours", as.integer (n), as.integer (x), as.integer (k), as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE) [[4]], nrow = n, ncol = k, byrow = TRUE)
 }
 
 knn.mnf.2D <- function (x, y, k) {
     n <- length (x)
-    matrix (.C ("grid_neighbours", as.integer (n), as.integer (x), as.integer (y), as.integer (k), as.integer (vector (length = n * k)), NAOK = TRUE, DUP = FALSE) [[5]], nrow = n, ncol = k, byrow = TRUE)
+    matrix (.C ("grid_neighbours", as.integer (n), as.integer (x), as.integer (y), as.integer (k), as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE) [[5]], nrow = n, ncol = k, byrow = TRUE)
 }
 
 pcor <- function (v, d = 1) { n <- length (v); cor (v[1:(n - d)], v[(1 + d):n]) }
@@ -183,3 +188,7 @@ ssd.probeset.inter <- function (indices, values, sample.size = 200) {
 
 ssd.probeset.ratio <- function (indices, values, sample.size.intra = 200, sample.size.inter = 200)
     ssd.probeset.intra (indices, values, sample.size.intra) / ssd.probeset.inter (indices, values, sample.size.inter)
+
+# features.b <- matrix (nrow = nrow (exprs (d)), ncol = 2)
+# for (ps in indexProbes (d, which = "both")) features.b[ps,] <- indices2xy (ps, abatch = d)
+# features.b <- features.b[!is.na (features.b[,1]),]
