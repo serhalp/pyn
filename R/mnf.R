@@ -28,7 +28,8 @@ normalize.mnf <- function (object, channel = "both", interest = "genome", bias =
     ))
 }
 
-normalize.mnf.RGList <- function (rg, channel, features.i, features.b, probe.filter, verbose, ...) {
+normalize.mnf.RGList <- function (rg, channel, features.i, features.b, dolog = TRUE, probe.filter, verbose, ...) {
+    # TODO: respect 'dolog' arg
     #probes <- rg$genes$Status == "Probe"
     probes <- probe.filter (rg$genes)
 
@@ -56,15 +57,35 @@ normalize.mnf.RGList <- function (rg, channel, features.i, features.b, probe.fil
     #asExprSet (rg, idColumn = "PROBE_ID")
 }
 
-normalize.mnf.AffyBatch <- function (batch, channel, features.i, features.b, probe.filter, verbose, ...) {
-    cpy <- exprs (batch)
+normalize.mnf.AffyBatch <- function (batch, channel, features.i, features.b, dolog = TRUE, probe.filter, verbose, ...) {
+    if (dolog)
+        cpy <- log (exprs (batch))
+    else
+        cpy <- exprs (batch)
 
     for (e in 1:length (batch)) {
         if (verbose)
             cat ("Normalizing array ", e, "...\n", sep = "")
 
-        indices <- indexProbes (batch[,e], which = channel)
-        res <- .Call ("affy_residuals", indices, exprs (batch[,e]))
+        if (channel %in% c ("pm", "both")) {
+            indices <- indexProbes (batch, which = "pm")
+            res <- .Call ("affy_residuals", indices, cpy[,e])
+            # Filter out non-pm probes from contention as neighbours
+            features.b.pm <- features.b
+            features.b.pm[is.na (res),] <- NA
+            pmn <- normalizeChannel (cpy[,e], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...)
+            cpy[!is.na (pmn),e] <- pmn[!is.na (pmn)]
+        }
+
+        if (channel %in% c ("mm", "both")) {
+            indices <- indexProbes (batch, which = "mm")
+            res <- .Call ("affy_residuals", indices, cpy[,e])
+            # Filter out non-mm probes from contention as neighbours
+            features.b.mm <- features.b
+            features.b.mm[is.na (res),] <- NA
+            mmn <- normalizeChannel (cpy[,e], features.i = features.i, features.b = features.b.mm, res = res, verbose = verbose, ...)
+            cpy[!is.na (mmn),e] <- mmn[!is.na (mmn)]
+        }
 
         #indices <- indexProbes (batch[,e], which = channel)
         #res <- vector (length = nrow (exprs (batch)))
@@ -75,13 +96,15 @@ normalize.mnf.AffyBatch <- function (batch, channel, features.i, features.b, pro
         #    for (i in 1:np)
         #        res[ps[i]] <- exprs (batch[,e])[ps[i]] - median (exprs (batch[,e])[ps[1:np != i]])
         #}
-
-        cpy[,e] <- normalizeChannel (exprs (batch[,e]), features.i = features.i, features.b = features.b, res = res, verbose = verbose, ...)
     }
+
+    if (dolog)
+        exprs (batch) <- exp (cpy)
+    else
+        exprs (batch) <- cpy
 
     if (verbose)
         cat ("All processing complete.\n")
-    exprs (batch) <- cpy
     return (batch)
 }
 
@@ -162,6 +185,7 @@ plotAutoCor <- function (v, ds = 0:10, ...) {
 ssd.probeset.intra <- function (indices, values, sample.size = 200) {
     indices <- sample (indices, sample.size)
     ssd <- 0
+
     for (ps in indices) {
         np <- length (ps)
         for (i in 1:(np - 1)) {
@@ -170,12 +194,14 @@ ssd.probeset.intra <- function (indices, values, sample.size = 200) {
             ssd <- ssd + sum ((values[p] - values[o]) ^ 2)
         }
     }
+
     sqrt (ssd)
 }
 
 ssd.probeset.inter <- function (indices, values, sample.size = 200) {
     indices <- sample (indices, sample.size)
     ssd <- 0
+
     for (i in 1:(sample.size - 1)) {
         ps <- indices[[i]]
         np <- length (ps)
@@ -183,11 +209,39 @@ ssd.probeset.inter <- function (indices, values, sample.size = 200) {
             for (o in indices[(i + 1):sample.size])
                 ssd <- ssd + sum ((values[p] - values[o]) ^ 2)
     }
+
     sqrt (ssd)
 }
 
 ssd.probeset.ratio <- function (indices, values, sample.size.intra = 200, sample.size.inter = 200)
     ssd.probeset.intra (indices, values, sample.size.intra) / ssd.probeset.inter (indices, values, sample.size.inter)
+
+vars.probeset <- function (batch) {
+    indices <- indexProbes (batch, which = "pm")
+    values <- exprs (batch)
+    vars <- matrix (nrow = length (indices), ncol = ncol (values))
+
+    for (i in 1:length (indices))
+        vars[i,] <- apply (values[indices[[i]],], 2, var)
+
+    vars
+}
+
+ftest.mnf <- function (batch, which = 1) {
+    indices <- indexProbes (batch, which = "pm")
+    values <- exprs (batch)[,which]
+    global_mean <- mean (pm (batch)[,which]) # 'values' contains pm + mm + control
+
+    inter_var <- 0
+    intra_var <- 0
+    for (ps in indices) {
+        ps_mean <- mean (values[ps])
+        inter_var <- inter_var + length (ps) * (ps_mean - global_mean) ^ 2
+        intra_var <- intra_var + sum ((values[ps] - ps_mean) ^ 2)
+    }
+
+    return (((length (values) - length (indices)) / (length (indices) - 1)) * (inter_var / intra_var))
+}
 
 # features.b <- matrix (nrow = nrow (exprs (d)), ncol = 2)
 # for (ps in indexProbes (d, which = "both")) features.b[ps,] <- indices2xy (ps, abatch = d)
