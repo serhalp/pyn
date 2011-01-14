@@ -11,6 +11,8 @@
 #ifndef _MNF_FUNCS_H
 #define _MNF_FUNCS_H
 
+#include <Rdefines.h>
+
 typedef struct {
     int *g;
     int w, h, n;
@@ -30,6 +32,8 @@ void array_neighbours (int *, int *, int *, int *);
 Array generate_array (int, int *);
 
 void map_values (int *, int *, int *, int *);
+
+SEXP affy_residuals (SEXP, SEXP);
 
 #endif
 

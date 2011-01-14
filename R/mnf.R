@@ -3,142 +3,128 @@
 require (affy)
 dyn.load (paste ("src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
 
-normalize.mnf <- function (object, channel = "both", interest = "genome", bias = "grid", features.i = NULL, features.b = NULL, probe.filter = function (v) rep (TRUE, length (v)), verbose = TRUE, ...) {
+mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.i = NULL, features.b = NULL, ...) {
     if (is.null (features.i)) {
         features.i <- switch (interest,
-            genome = order (RG$genes$PROBE_ID), # This is MP_-specific
-            none = NULL,
+            genome = order (batch$genes$PROBE_ID), # This is MP_-specific
+            probeset = NULL,
             stop ("Need one of 'interest' or 'features.i'")
         )
     }
 
     if (is.null (features.b)) {
         features.b <- switch (bias,
-            grid = RG$genes[, c ("X", "Y")],
-            length = order (length (RG$genes[, "sequence"]), sample (1:length (RG))),
+            grid = indices2xy (seq (nrow (exprs (batch))), abatch = batch),
+            length = order (length (batch$genes[, "sequence"]), sample (1:length (batch))),
             none = NULL,
             stop ("Need one of 'bias' or 'features.b'")
         )
     }
 
-    return (switch (class (object),
-        RGList = normalize.mnf.RGList (object, channel, features.i, features.b, probe.filter, verbose, ...),
-        AffyBatch = normalize.mnf.AffyBatch (object, channel, features.i, features.b, probe.filter, verbose, ...),
-        stop ("'object' must be of class RGList or AffyBatch")
-    ))
-}
+    # Compute a normalized intensity for each probe in each array
+    exprs.probes <- normalize.mnf (batch, features.i, features.b, ...)
+    exprs (batch) <- exprs.probes
 
-normalize.mnf.RGList <- function (rg, channel, features.i, features.b, dolog = TRUE, probe.filter, verbose, ...) {
-    # TODO: respect 'dolog' arg
-    #probes <- rg$genes$Status == "Probe"
-    probes <- probe.filter (rg$genes)
+    # Compute a summarized gene expression value for each probeset, in each array
+    exprs.genes <- summarize.mnf (batch)
 
-    for (e in 1:ncol (rg)) {
-        if (verbose)
-            cat ("Normalizing array ", e, "...\n", sep =  "")
-
-        if (channel %in% c ("green", "both")) {
-            if (verbose)
-                cat ("  Green channel...\n")
-            rg$G[probes] <- normalizeChannel (rg$G[probes,e], features.i = subset (features.i, probes), features.b = subset (features.b, probes), verbose = verbose, ...)
-        }
-
-        if (channel %in% c ("red", "both")) {
-            if (verbose)
-                cat ("  Red channel...\n")
-            rg$R[probes] <- normalizeChannel (rg$R[probes,e], features.i = subset (features.i, probes), features.b = subset (features.b, probes), verbose = verbose, ...)
-        }
+    # Computes only the p-value (much faster than 't.test') for a two-sample
+    # t-test with unequal sample sizes and equal variances
+    t.test.p.value <- function (a, b) {
+        na <- length (a)
+        nb <- length (b)
+        df <- na + nb - 2
+        tstat <- ((mean (a) - mean (b)) / (sqrt (((na - 1) * var (a) + (nb - 1) * var (b)) / df) * sqrt (1 / na + 1 / nb)))
+        return (2 * pt (-abs (tstat), df))
     }
 
-    if (verbose)
-        cat ("All processing complete.\n")
-    rg
-    #rg <- MA.RG (rg)
-    #asExprSet (rg, idColumn = "PROBE_ID")
-}
+    # Returns a data frame with log FC and t-test p-value for each gene
+    num.genes <- length (featureNames (batch))
+    diff.expr.stats <- function (pair) {
+        arrays.first <- which (samples == pair[1])
+        arrays.second <- which (samples == pair[2])
 
-normalize.mnf.AffyBatch <- function (batch, channel, features.i, features.b, dolog = TRUE, probe.filter, verbose, ...) {
-    if (dolog)
-        cpy <- log (exprs (batch))
-    else
-        cpy <- exprs (batch)
+        # Compute p-value of two-sample t-test, for each gene
+        p.values <- sapply (seq (num.genes),
+            function (g) t.test.p.value (exprs.genes[g,arrays.first], exprs.genes[g,arrays.second]))
 
-    for (e in 1:length (batch)) {
-        if (verbose)
-            cat ("Normalizing array ", e, "...\n", sep = "")
-
-        if (channel %in% c ("pm", "both")) {
-            indices <- indexProbes (batch, which = "pm")
-            res <- .Call ("affy_residuals", indices, cpy[,e])
-            # Filter out non-pm probes from contention as neighbours
-            features.b.pm <- features.b
-            features.b.pm[is.na (res),] <- NA
-            pmn <- normalizeChannel (cpy[,e], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...)
-            cpy[!is.na (pmn),e] <- pmn[!is.na (pmn)]
-        }
-
-        if (channel %in% c ("mm", "both")) {
-            indices <- indexProbes (batch, which = "mm")
-            res <- .Call ("affy_residuals", indices, cpy[,e])
-            # Filter out non-mm probes from contention as neighbours
-            features.b.mm <- features.b
-            features.b.mm[is.na (res),] <- NA
-            mmn <- normalizeChannel (cpy[,e], features.i = features.i, features.b = features.b.mm, res = res, verbose = verbose, ...)
-            cpy[!is.na (mmn),e] <- mmn[!is.na (mmn)]
-        }
-
-        #indices <- indexProbes (batch[,e], which = channel)
-        #res <- vector (length = nrow (exprs (batch)))
-        #for (ps in indices) {
-        #    if (verbose)
-        #        cat ("Normalizing probeset...\n")
-        #    np <- length (ps)
-        #    for (i in 1:np)
-        #        res[ps[i]] <- exprs (batch[,e])[ps[i]] - median (exprs (batch[,e])[ps[1:np != i]])
-        #}
+        return (data.frame (fold.change = rowMeans (exprs.genes[,arrays.first]) - rowMeans (exprs.genes[,arrays.second]),
+            p.value = p.values, row.names = featureNames (batch)))
     }
 
-    if (dolog)
-        exprs (batch) <- exp (cpy)
-    else
-        exprs (batch) <- cpy
+    # Compute log FC and t-test p-value for each gene, for each pair of samples
+    num.samples <- length (unique (samples))
+    # TODO: return variance
+    return (lapply (combn (num.samples, 2, simplify = FALSE), diff.expr.stats))
+}
 
-    if (verbose)
-        cat ("All processing complete.\n")
-    return (batch)
+summarize.mnf <- function (batch, summaryStatistic = "mean") {
+    stat <- colify (summaryStatistic)
+    exprs.probes <- exprs (batch)
+    return (t (sapply (indexProbes (batch, which = "pm"),
+        function (ps) stat (exprs.probes[ps,]))))
+}
+
+normalize.mnf <- function (batch, features.i, features.b, dolog = TRUE, verbose = TRUE, ...) {
+    exprs <- exprs (batch)
+    indices <- indexProbes (batch, which = "pm")
+
+    if (dolog)
+        exprs <- log2 (exprs)
+
+    normalize.mnf.array <- function (a) {
+        if (verbose)
+            cat ("Normalizing array ", a, "...\n", sep = "")
+
+        if (is.null (features.i))
+            res <- .Call ("affy_residuals", indices, exprs[,a])
+        else
+            stop ("'probeset' is currently the only valid value for 'interest'.")
+        # Make sure non-pm probes are not considered grid neighbours
+        features.b.pm <- features.b
+        features.b.pm[is.na (res),] <- NA
+        pmn <- normalizeChannel (exprs[,a], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...)
+        exprs[!is.na (pmn),a] <- pmn[!is.na (pmn)]
+    }
+
+    if (!is.null (features.b))
+        return (sapply (seq (ncol (exprs)), normalize.mnf.array))
+    else
+        return (exprs)
 }
 
 normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "median", res = NULL, verbose = TRUE) {
-    if (is.vector (channel) || (is.matrix (channel) && ncol (channel) == 1)) {
-        si <- rowify (summaryStatistic.i)
-        sb <- rowify (summaryStatistic.b)
-
-        if (is.null (res)) {
-            if (verbose)
-                cat ("    Computing residuals...\n")
-            res <- residuals.mnf (channel, features.i, ki, si)
-        }
-
-        if (verbose)
-            cat ("    Locating neighbours in bias space...\n")
-        neighbours <- knn.mnf (features.b, kb)
-
-        if (verbose)
-            cat ("    Correcting values...\n")
-        ncells <- as.integer (prod (dim (neighbours)))
-        mappedRes <- .C ("map_values", ncells, as.integer (neighbours), as.integer (res), as.integer (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
-
-        b <- !is.na (res)
-        # WTF: rowMeans (and variants) do not work on 1-column matrices
-        # (i.e. kb and ki cannot be == 1)
-        channel[b] <- channel[b] - sb (matrix (mappedRes, nrow = length (res))[b,])
-        channel
-    } else {
+    if (!is.vector (channel) && !(is.matrix (channel) && ncol (channel) == 1))
         stop ("'channel' must be a vector or a 1-column matrix")
+    # For some reason, rowMeans and variants do not work on 1-column matrices
+    if (ki <= 1 && kb <= 1)
+        stop ("ki and kb must both be integers greater than one")
+
+    si <- rowify (summaryStatistic.i)
+    sb <- rowify (summaryStatistic.b)
+
+    if (is.null (res)) {
+        if (verbose)
+            cat ("    Computing residuals...\n")
+        res <- residuals.mnf (channel, features.i, as.integer (ki), si)
     }
+
+    if (verbose)
+        cat ("    Locating neighbours in bias space...\n")
+    neighbours <- knn.mnf (features.b, as.integer (kb))
+
+    if (verbose)
+        cat ("    Correcting values...\n")
+    ncells <- as.integer (prod (dim (neighbours)))
+    mappedRes <- .C ("map_values", ncells, as.integer (neighbours), as.integer (res), as.integer (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
+
+    b <- !is.na (res)
+    channel[b] <- channel[b] - sb (matrix (mappedRes, nrow = length (res))[b,])
+    return (channel)
 }
 
 rowify <- function (fun) switch (fun, mean = rowMeans, median = rowMedians, min = rowMin, max = rowMax)
+colify <- function (fun) switch (fun, mean = colMeans, median = colMedians, min = colMin, max = colMax)
 
 residuals.mnf <- function (channel, pos, k, sumStat) {
     if (is.null (pos))
@@ -171,12 +157,8 @@ knn.mnf.2D <- function (x, y, k) {
 
 pcor <- function (v, d = 1) { n <- length (v); cor (v[1:(n - d)], v[(1 + d):n]) }
 
-pcors <- function (v, ds = 0:10) {
-    cors <- vector (length = length (ds))
-    for (i in 1:length (ds))
-        cors[i] <- pcor (v, ds[i])
-    cors
-}
+pcors <- function (v, ds = 0:10)
+    sapply (ds, pcor, v = v)
 
 plotAutoCor <- function (v, ds = 0:10, ...) {
     plot (pcors (v, ds) ~ ds, type = "b", xlab = "Lag", ylab = "Genomic autocorrelation", ylim = c (0, 1), ...)
@@ -186,6 +168,7 @@ ssd.probeset.intra <- function (indices, values, sample.size = 200) {
     indices <- sample (indices, sample.size)
     ssd <- 0
 
+    # FIXME: Rewrite without loops.
     for (ps in indices) {
         np <- length (ps)
         for (i in 1:(np - 1)) {
@@ -202,6 +185,7 @@ ssd.probeset.inter <- function (indices, values, sample.size = 200) {
     indices <- sample (indices, sample.size)
     ssd <- 0
 
+    # FIXME: Rewrite without loops.
     for (i in 1:(sample.size - 1)) {
         ps <- indices[[i]]
         np <- length (ps)
@@ -232,6 +216,7 @@ ftest.mnf <- function (batch, which = 1) {
     values <- exprs (batch)[,which]
     global_mean <- mean (pm (batch)[,which]) # 'values' contains pm + mm + control
 
+    # FIXME: This is despicable; rewrite without loops.
     inter_var <- 0
     intra_var <- 0
     for (ps in indices) {
@@ -242,7 +227,3 @@ ftest.mnf <- function (batch, which = 1) {
 
     return (((length (values) - length (indices)) / (length (indices) - 1)) * (inter_var / intra_var))
 }
-
-# features.b <- matrix (nrow = nrow (exprs (d)), ncol = 2)
-# for (ps in indexProbes (d, which = "both")) features.b[ps,] <- indices2xy (ps, abatch = d)
-# features.b <- features.b[!is.na (features.b[,1]),]
