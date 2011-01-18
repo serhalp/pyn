@@ -3,7 +3,7 @@
 require (affy)
 dyn.load (paste ("src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
 
-mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.i = NULL, features.b = NULL, ...) {
+mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.i = NULL, features.b = NULL, verbose = TRUE, ...) {
     if (is.null (features.i)) {
         features.i <- switch (interest,
             genome = order (batch$genes$PROBE_ID), # This is MP_-specific
@@ -22,11 +22,11 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
     }
 
     # Compute a normalized intensity for each probe in each array
-    exprs.probes <- normalize.mnf (batch, features.i, features.b, ...)
+    exprs.probes <- normalize.mnf (batch, features.i, features.b, verbose = verbose, ...)
     exprs (batch) <- exprs.probes
 
     # Compute a summarized gene expression value for each probeset, in each array
-    exprs.genes <- summarize.mnf (batch)
+    exprs.genes <- summarize.mnf (batch, verbose)
 
     # Computes only the p-value (much faster than 't.test') for a two-sample
     # t-test with unequal sample sizes and equal variances
@@ -57,12 +57,15 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
     }
 
     # Compute some stats for each pair of samples
+    if (verbose)
+        cat ("Computing differential expression...\n")
     num.samples <- length (unique (samples))
-    # TODO: return variance
     return (lapply (combn (num.samples, 2, simplify = FALSE), diff.expr.stats))
 }
 
-summarize.mnf <- function (batch, summaryStatistic = "mean") {
+summarize.mnf <- function (batch, summaryStatistic = "mean", verbose = TRUE) {
+    if (verbose)
+        cat ("Summarizing probeset intensities...\n")
     stat <- colify (summaryStatistic)
     exprs.probes <- exprs (batch)
     return (t (sapply (indexProbes (batch, which = "pm"),
@@ -157,77 +160,4 @@ knn.mnf.1D <- function (x, k) {
 knn.mnf.2D <- function (x, y, k) {
     n <- length (x)
     matrix (.C ("grid_neighbours", as.integer (n), as.integer (x), as.integer (y), as.integer (k), as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE) [[5]], nrow = n, ncol = k, byrow = TRUE)
-}
-
-pcor <- function (v, d = 1) { n <- length (v); cor (v[1:(n - d)], v[(1 + d):n]) }
-
-pcors <- function (v, ds = 0:10)
-    sapply (ds, pcor, v = v)
-
-plotAutoCor <- function (v, ds = 0:10, ...) {
-    plot (pcors (v, ds) ~ ds, type = "b", xlab = "Lag", ylab = "Genomic autocorrelation", ylim = c (0, 1), ...)
-}
-
-ssd.probeset.intra <- function (indices, values, sample.size = 200) {
-    indices <- sample (indices, sample.size)
-    ssd <- 0
-
-    # FIXME: Rewrite without loops.
-    for (ps in indices) {
-        np <- length (ps)
-        for (i in 1:(np - 1)) {
-            p <- ps[i]
-            o <- ps[(i + 1):np]
-            ssd <- ssd + sum ((values[p] - values[o]) ^ 2)
-        }
-    }
-
-    sqrt (ssd)
-}
-
-ssd.probeset.inter <- function (indices, values, sample.size = 200) {
-    indices <- sample (indices, sample.size)
-    ssd <- 0
-
-    # FIXME: Rewrite without loops.
-    for (i in 1:(sample.size - 1)) {
-        ps <- indices[[i]]
-        np <- length (ps)
-        for (p in ps)
-            for (o in indices[(i + 1):sample.size])
-                ssd <- ssd + sum ((values[p] - values[o]) ^ 2)
-    }
-
-    sqrt (ssd)
-}
-
-ssd.probeset.ratio <- function (indices, values, sample.size.intra = 200, sample.size.inter = 200)
-    ssd.probeset.intra (indices, values, sample.size.intra) / ssd.probeset.inter (indices, values, sample.size.inter)
-
-vars.probeset <- function (batch) {
-    indices <- indexProbes (batch, which = "pm")
-    values <- exprs (batch)
-    vars <- matrix (nrow = length (indices), ncol = ncol (values))
-
-    for (i in 1:length (indices))
-        vars[i,] <- apply (values[indices[[i]],], 2, var)
-
-    vars
-}
-
-ftest.mnf <- function (batch, which = 1) {
-    indices <- indexProbes (batch, which = "pm")
-    values <- exprs (batch)[,which]
-    global_mean <- mean (pm (batch)[,which]) # 'values' contains pm + mm + control
-
-    # FIXME: This is despicable; rewrite without loops.
-    inter_var <- 0
-    intra_var <- 0
-    for (ps in indices) {
-        ps_mean <- mean (values[ps])
-        inter_var <- inter_var + length (ps) * (ps_mean - global_mean) ^ 2
-        intra_var <- intra_var + sum ((values[ps] - ps_mean) ^ 2)
-    }
-
-    return (((length (values) - length (indices)) / (length (indices) - 1)) * (inter_var / intra_var))
 }
