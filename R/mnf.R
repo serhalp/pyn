@@ -48,8 +48,11 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
         p.values <- sapply (seq (num.genes),
             function (g) t.test.p.value (exprs.genes[g,arrays.first], exprs.genes[g,arrays.second]))
 
-        return (data.frame (fold.change = rowMeans (exprs.genes[,arrays.first]) - rowMeans (exprs.genes[,arrays.second]),
-            p.value = p.values, row.names = featureNames (batch)))
+        return (data.frame (
+            fold.change = rowMeans (exprs.genes[,arrays.first]) - rowMeans (exprs.genes[,arrays.second]),
+            p.value = p.values,
+            var = apply (exprs.genes[,arrays.first], 1, var) + apply (exprs.genes[,arrays.second], 1, var),
+            row.names = featureNames (batch)))
     }
 
     # Compute log FC and t-test p-value for each gene, for each pair of samples
