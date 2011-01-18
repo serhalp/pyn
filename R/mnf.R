@@ -38,7 +38,7 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
         return (2 * pt (-abs (tstat), df))
     }
 
-    # Returns a data frame with log FC and t-test p-value for each gene
+    # Returns a data frame with replicate variance, log FC and t-test p-value for each gene
     num.genes <- length (featureNames (batch))
     diff.expr.stats <- function (pair) {
         arrays.first <- which (samples == pair[1])
@@ -48,11 +48,15 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
         p.values <- sapply (seq (num.genes),
             function (g) t.test.p.value (exprs.genes[g,arrays.first], exprs.genes[g,arrays.second]))
 
-        return (data.frame (fold.change = rowMeans (exprs.genes[,arrays.first]) - rowMeans (exprs.genes[,arrays.second]),
-            p.value = p.values, row.names = featureNames (batch)))
+        return (data.frame (
+            var = apply (exprs.genes[,arrays.first], 1, var) + apply (exprs.genes[,arrays.second], 1, var),
+            fold.change = rowMeans (exprs.genes[,arrays.first]) - rowMeans (exprs.genes[,arrays.second]),
+            p.value = p.values,
+            row.names = featureNames (batch))
+        )
     }
 
-    # Compute log FC and t-test p-value for each gene, for each pair of samples
+    # Compute some stats for each pair of samples
     num.samples <- length (unique (samples))
     # TODO: return variance
     return (lapply (combn (num.samples, 2, simplify = FALSE), diff.expr.stats))
