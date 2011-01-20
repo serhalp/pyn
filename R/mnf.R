@@ -7,7 +7,7 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
     if (is.null (features.i)) {
         features.i <- switch (interest,
             genome = order (batch$genes$PROBE_ID), # This is MP_-specific
-            probeset = NULL,
+            probeset = NULL, # FIXME: This is not very expressive...
             stop ("Need one of 'interest' or 'features.i'")
         )
     }
@@ -22,8 +22,7 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
     }
 
     # Compute a normalized intensity for each probe in each array
-    exprs.probes <- normalize.mnf (batch, features.i, features.b, verbose = verbose, ...)
-    exprs (batch) <- exprs.probes
+    batch <- normalize.mnf (batch, features.i, features.b, verbose = verbose, ...)
 
     # Compute a summarized gene expression value for each probeset, in each array
     exprs.genes <- summarize.mnf (batch, verbose)
@@ -87,20 +86,22 @@ normalize.mnf <- function (batch, features.i, features.b, dolog = TRUE, verbose 
             res <- .Call ("affy_residuals", indices, exprs[,a])
         else
             stop ("'probeset' is currently the only valid value for 'interest'.")
+
         # Make sure non-pm probes are not considered grid neighbours
         features.b.pm <- features.b
         features.b.pm[is.na (res),] <- NA
-        pmn <- normalizeChannel (exprs[,a], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...)
-        exprs[!is.na (pmn),a] <- pmn[!is.na (pmn)]
+        return (normalizeChannel (exprs[,a], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...))
     }
 
     if (!is.null (features.b))
-        return (sapply (seq (ncol (exprs)), normalize.mnf.array))
+        exprs (batch) <- sapply (seq (ncol (exprs)), normalize.mnf.array)
     else
-        return (exprs)
+        exprs (batch) <- exprs # Still need to do this because log may have been applied
+
+    return (batch)
 }
 
-normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "median", res = NULL, verbose = TRUE) {
+normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "mean", res = NULL, verbose = TRUE) {
     if (!is.vector (channel) && !(is.matrix (channel) && ncol (channel) == 1))
         stop ("'channel' must be a vector or a 1-column matrix")
     # For some reason, rowMeans and variants do not work on 1-column matrices
@@ -123,13 +124,14 @@ normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, 
     if (verbose)
         cat ("    Correcting values...\n")
     ncells <- as.integer (prod (dim (neighbours)))
-    mappedRes <- .C ("map_values", ncells, as.integer (neighbours), as.integer (res), as.integer (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
+    res.mapped <- .C ("map_values", ncells, as.integer (neighbours), as.double (res), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
 
     b <- !is.na (res)
-    channel[b] <- channel[b] - sb (matrix (mappedRes, nrow = length (res))[b,])
+    channel[b] <- channel[b] - sb (matrix (res.mapped, nrow = length (res))[b,])
     return (channel)
 }
 
+# TODO: I guess this might as well be done with an apply...
 rowify <- function (fun) switch (fun, mean = rowMeans, median = rowMedians, min = rowMin, max = rowMax)
 colify <- function (fun) switch (fun, mean = colMeans, median = colMedians, min = colMin, max = colMax)
 
@@ -139,7 +141,7 @@ residuals.mnf <- function (channel, pos, k, sumStat) {
 
     neighbours <- knn.mnf (pos, k)
     ncells <- as.integer (prod (dim (neighbours)))
-    mappedVals <- .C ("map_values", ncells, as.integer (neighbours), as.integer (channel), as.integer (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
+    mappedVals <- .C ("map_values", ncells, as.integer (neighbours), as.double (channel), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
     channel - sumStat (matrix (mappedVals, nrow = length (channel)))
 }
 
