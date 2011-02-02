@@ -31,7 +31,7 @@ inline void grid_set (Grid *, int, int, int);
 void array_neighbours (int *, int *, int *, int *);
 Array generate_array (int, int *);
 
-void map_values (int *, int *, int *, int *);
+void map_values (int *, int *, double *, double *);
 
 SEXP affy_residuals (SEXP, SEXP);
 

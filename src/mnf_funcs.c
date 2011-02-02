@@ -80,7 +80,7 @@ Grid generate_grid (int n, int *x, int *y) {
     Grid grid;
     grid.w = xMax;
     grid.h = yMax;
-    grid.n = xMax * yMax;
+    grid.n = (xMax + 1) * (yMax + 1);
     grid.g = (int *) R_alloc (grid.n, sizeof (int));
 
     // Initialize all cells to -1
@@ -96,11 +96,11 @@ Grid generate_grid (int n, int *x, int *y) {
 }
 
 inline int grid_get (Grid *grid, int i, int j) {
-    return grid->g[(i - 1) + (j - 1) * grid->w];
+    return grid->g[i + j * grid->w];
 }
 
 inline void grid_set (Grid *grid, int i, int j, int val) {
-    grid->g[(i - 1) + (j - 1) * grid->w] = val;
+    grid->g[i + j * grid->w] = val;
 }
 
 void array_neighbours (int *n, int *pos, int *k, int *neighbours) {
@@ -145,7 +145,7 @@ Array generate_array (int n, int *pos) {
     return array;
 }
 
-void map_values (int *n, int *indices, int *values, int *mapped) {
+void map_values (int *n, int *indices, double *values, double *mapped) {
     for (int i = 0; i < *n; ++i)
         if (indices[i] != NA_INTEGER)
             mapped[i] = values[indices[i] - 1]; // 1-offset to 0-offset
