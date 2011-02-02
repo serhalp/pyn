@@ -67,45 +67,61 @@ summarize.mnf <- function (batch, summaryStatistic = "mean", verbose = TRUE) {
         cat ("Summarizing probeset intensities...\n")
     stat <- colify (summaryStatistic)
     exprs.probes <- exprs (batch)
+    # TODO: Return ExpressionSet/eSet here rather than just a matrix.
     return (t (sapply (indexProbes (batch, which = "pm"),
         function (ps) stat (exprs.probes[ps,]))))
 }
 
-normalize.mnf <- function (batch, features.i, features.b, dolog = TRUE, verbose = TRUE, ...) {
-    exprs <- exprs (batch)
+normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL, dolog = TRUE, doexp = FALSE, verbose = TRUE, ...) {
+    e <- exprs (batch)
     indices <- indexProbes (batch, which = "pm")
 
     if (dolog)
-        exprs <- log2 (exprs)
+        e <- log2 (e)
 
     normalize.mnf.array <- function (a) {
         if (verbose)
             cat ("Normalizing array ", a, "...\n", sep = "")
 
-        if (is.null (features.i))
-            res <- .Call ("affy_residuals", indices, exprs[,a])
-        else
+        if (is.null (features.i)) {
+            if (is.null (res.pre))
+                res <- residuals.mnf.probeset (e[,a], indices)
+            else
+                res <- res.pre[,a]
+        } else {
             stop ("'probeset' is currently the only valid value for 'interest'.")
+        }
 
         # Make sure non-pm probes are not considered grid neighbours
         features.b.pm <- features.b
         features.b.pm[is.na (res),] <- NA
-        return (normalizeChannel (exprs[,a], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...))
+        return (normalizeChannel (e[,a], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...))
     }
 
-    if (!is.null (features.b))
-        exprs (batch) <- sapply (seq (ncol (exprs)), normalize.mnf.array)
-    else
-        exprs (batch) <- exprs # Still need to do this because log may have been applied
+    if (!is.null (features.b)) {
+        # Apparently there is no other way to preserve the dimnames: matrix()
+        # flattens matrix input; as.matrix() ignores 'dimnames' arg.  Argh.
+        dimnames.bak <- dimnames (e)
+        e <- sapply (seq (ncol (e)), normalize.mnf.array)
+        dimnames (e) <- dimnames.bak
+    }
 
+    if (doexp)
+        e <- 2 ^ e
+
+    exprs (batch) <- e
     return (batch)
+}
+
+residuals.mnf.probeset <- function (values, indices) {
+    return (.Call ("affy_residuals", indices, values))
 }
 
 normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "mean", res = NULL, verbose = TRUE) {
     if (!is.vector (channel) && !(is.matrix (channel) && ncol (channel) == 1))
         stop ("'channel' must be a vector or a 1-column matrix")
     # For some reason, rowMeans and variants do not work on 1-column matrices
-    if (ki <= 1 && kb <= 1)
+    if (ki <= 1 || kb <= 1)
         stop ("ki and kb must both be integers greater than one")
 
     si <- rowify (summaryStatistic.i)
@@ -124,10 +140,10 @@ normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, 
     if (verbose)
         cat ("    Correcting values...\n")
     ncells <- as.integer (prod (dim (neighbours)))
-    res.mapped <- .C ("map_values", ncells, as.integer (neighbours), as.double (res), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
+    res.mapped <- matrix (.C ("map_values", ncells, as.integer (neighbours), as.double (res), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]] , nrow = length (res))
 
     b <- !is.na (res)
-    channel[b] <- channel[b] - sb (matrix (res.mapped, nrow = length (res))[b,])
+    channel[b] <- channel[b] - sb (res.mapped[b,])
     return (channel)
 }
 
@@ -162,4 +178,37 @@ knn.mnf.1D <- function (x, k) {
 knn.mnf.2D <- function (x, y, k) {
     n <- length (x)
     matrix (.C ("grid_neighbours", as.integer (n), as.integer (x), as.integer (y), as.integer (k), as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE) [[5]], nrow = n, ncol = k, byrow = TRUE)
+}
+
+image.mnf.repvar <- function (batch, samples, cutoff = 0.1) {
+    num.probes <- nrow (exprs (batch))
+    num.samples <- length (unique (samples))
+    batch.rv <- batch
+    exprs (batch.rv) <- matrix (nrow = num.probes, ncol = num.samples)
+
+    image.mnf.repvar.sample <- function (s) {
+        col <- apply (log2 (exprs (batch)[,which (samples == s)]), 1, var)
+        col[abs (col) < cutoff] <- NA
+        return (col)
+    }
+
+    exprs (batch.rv) <- sapply (1:num.samples, image.mnf.repvar.sample)
+    image (batch.rv, transfo = NULL)
+}
+
+# FIXME: why did I name this 'psvar' when it computes deviations?
+image.mnf.psvar <- function (batch, cutoff = 0.5, col = pseudoPalette (low = "blue", high = "red", mid = "white"), ...) {
+    require (affyPLM)
+
+    batch.pv <- batch
+    indices <- indexProbes (batch, which = "pm")
+
+    image.mnf.psvar.array <- function (e) {
+        col <- residuals.mnf.probeset (log2 (exprs (batch)[,e]), indices)
+        col[abs (col) < cutoff] <- NA
+        return (col)
+    }
+
+    exprs (batch.pv) <- sapply (1:length (batch), image.mnf.psvar.array)
+    image (batch.pv, transfo = NULL, col = col, ...)
 }
