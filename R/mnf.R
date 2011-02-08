@@ -124,7 +124,7 @@ residuals.mnf.replicate <- function (values, samples) {
         return (cols)
     }
 
-    return (do.call (cbind, lapply (1:length (unique (samples)), residuals.mnf.replicate.sample)))
+    return (do.call (cbind, lapply (unique (samples), residuals.mnf.replicate.sample)))
 }
 
 normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "mean", res = NULL, verbose = TRUE) {
@@ -190,7 +190,7 @@ knn.mnf.2D <- function (x, y, k) {
     matrix (.C ("grid_neighbours", as.integer (n), as.integer (x), as.integer (y), as.integer (k), as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE) [[5]], nrow = n, ncol = k, byrow = TRUE)
 }
 
-# TODO: 'image.mnf.repvar' and 'image.mnf.psvar' can probably be combined
+# TODO: 'image.mnf.repres' and 'image.mnf.psres' can probably be combined
 image.mnf.repres <- function (batch, samples, which = 1:length (batch), transfo = log2, shuffle = FALSE, col = pseudoPalette (low = "blue", high = "red", mid = "white"), ...) {
     num.probes <- nrow (exprs (batch))
     num.samples <- length (unique (samples))
@@ -205,7 +205,6 @@ image.mnf.repres <- function (batch, samples, which = 1:length (batch), transfo 
     return (summary (pm (batch.res)))
 }
 
-# FIXME: why did I name this 'psvar' when it computes deviations?
 image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2, shuffle = FALSE, cutoff = 0.5, col = pseudoPalette (low = "blue", high = "red", mid = "white"), ...) {
     require (affyPLM)
 
