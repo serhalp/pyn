@@ -222,5 +222,6 @@ image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2, sh
     }
 
     exprs (batch.res) <- sapply (1:length (batch), image.mnf.psres.array)
-    image (batch.res[,which], transfo = NULL, col = col, ...) }
+    image (batch.res[,which], transfo = NULL, col = col, ...)
     return (summary (pm (batch.res)))
+}
