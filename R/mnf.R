@@ -1,7 +1,8 @@
 # vim:set filetype=r:
 
 require (affy)
-dyn.load (paste ("src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
+# FIXME: Path here should be relative to package root.
+dyn.load (paste ("/home/serhalp/workspace/rmnf/src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
 
 mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.i = NULL, features.b = NULL, verbose = TRUE, ...) {
     if (is.null (features.i)) {
@@ -221,5 +222,6 @@ image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2, sh
     }
 
     exprs (batch.res) <- sapply (1:length (batch), image.mnf.psres.array)
-    image (batch.res[,which], transfo = NULL, col = col, ...) }
+    image (batch.res[,which], transfo = NULL, col = col, ...)
     return (summary (pm (batch.res)))
+}
