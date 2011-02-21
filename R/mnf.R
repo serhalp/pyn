@@ -1,7 +1,8 @@
 # vim:set filetype=r:
 
 require (affy)
-dyn.load (paste ("src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
+# FIXME: Path here should be relative to package root.
+dyn.load (paste ("/home/serhalp/workspace/rmnf/src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
 
 mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.i = NULL, features.b = NULL, verbose = TRUE, ...) {
     if (is.null (features.i)) {
@@ -48,11 +49,10 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
             function (g) t.test.p.value (exprs.genes[g,arrays.first], exprs.genes[g,arrays.second]))
 
         return (data.frame (
-            var = apply (exprs.genes[,arrays.first], 1, var) + apply (exprs.genes[,arrays.second], 1, var),
             fold.change = rowMeans (exprs.genes[,arrays.first]) - rowMeans (exprs.genes[,arrays.second]),
             p.value = p.values,
-            row.names = featureNames (batch))
-        )
+            var = apply (exprs.genes[,arrays.first], 1, var) + apply (exprs.genes[,arrays.second], 1, var),
+            row.names = featureNames (batch)))
     }
 
     # Compute some stats for each pair of samples
