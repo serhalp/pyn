@@ -2,7 +2,7 @@
 
 require (affy)
 # FIXME: Path here should be relative to package root.
-dyn.load (paste ("/home/serhalp/workspace/rmnf/src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
+dyn.load (paste ("~/workspace/rmnf/src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
 
 mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.i = NULL, features.b = NULL, verbose = TRUE, ...) {
     if (is.null (features.i)) {
@@ -127,6 +127,7 @@ residuals.mnf.replicate <- function (values, samples) {
     return (do.call (cbind, lapply (unique (samples), residuals.mnf.replicate.sample)))
 }
 
+# TODO: Refactor normalize.mnf + normalizeChannel (into one function?)
 normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "mean", res = NULL, verbose = TRUE) {
     if (!is.vector (channel) && !(is.matrix (channel) && ncol (channel) == 1))
         stop ("'channel' must be a vector or a 1-column matrix")
