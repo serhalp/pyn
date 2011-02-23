@@ -1,13 +1,12 @@
 # vim:set filetype=r:
 
-require (affy)
+library (affy)
 # FIXME: Path here should be relative to package root.
 dyn.load (paste ("~/workspace/rmnf/src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
 
 mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.i = NULL, features.b = NULL, verbose = TRUE, ...) {
     if (is.null (features.i)) {
         features.i <- switch (interest,
-            genome = order (batch$genes$PROBE_ID), # This is MP_-specific
             probeset = NULL, # FIXME: This is not very expressive...
             stop ("Need one of 'interest' or 'features.i'")
         )
@@ -16,7 +15,6 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
     if (is.null (features.b)) {
         features.b <- switch (bias,
             grid = indices2xy (seq (nrow (exprs (batch))), abatch = batch),
-            length = order (length (batch$genes[, "sequence"]), sample (1:length (batch))),
             none = NULL,
             stop ("Need one of 'bias' or 'features.b'")
         )
@@ -62,14 +60,13 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid", features.
     return (lapply (combn (num.samples, 2, simplify = FALSE), diff.expr.stats))
 }
 
-summarize.mnf <- function (batch, summaryStatistic = "mean", verbose = TRUE) {
+summarize.mnf <- function (batch, summary.stat = mean, verbose = TRUE) {
     if (verbose)
         cat ("Summarizing probeset intensities...\n")
-    stat <- colify (summaryStatistic)
     exprs.probes <- exprs (batch)
-    # TODO: Return ExpressionSet/eSet here rather than just a matrix.
-    return (t (sapply (indexProbes (batch, which = "pm"),
-        function (ps) stat (exprs.probes[ps,]))))
+    # TODO: (Maybe) return ExpressionSet/eSet here rather than just a matrix.
+    return (t (sapply (indexProbes (batch, which = "pm"), function (ps)
+        apply (exprs.probes[ps,], 2, summary.stat))))
 }
 
 normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL, dolog = TRUE, doexp = FALSE, verbose = TRUE, ...) {
@@ -89,10 +86,11 @@ normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL, dolog 
             else
                 res <- res.pre[,a]
         } else {
+            # TODO: Refactor handling of bias/interest/features, to avoid nonsense like this.
             stop ("'probeset' is currently the only valid value for 'interest'.")
         }
 
-        # Make sure non-pm probes are not considered grid neighbours
+        # Make sure non-pm probes are not considered grid neighbours.
         features.b.pm <- features.b
         features.b.pm[is.na (res),] <- NA
         return (normalizeChannel (e[,a], features.i = features.i, features.b = features.b.pm, res = res, verbose = verbose, ...))
@@ -128,20 +126,17 @@ residuals.mnf.replicate <- function (values, samples) {
 }
 
 # TODO: Refactor normalize.mnf + normalizeChannel (into one function?)
-normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summaryStatistic.i = "mean", summaryStatistic.b = "mean", res = NULL, verbose = TRUE) {
+normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, summary.stat.i = mean, summary.stat.b = mean, res = NULL, verbose = TRUE) {
     if (!is.vector (channel) && !(is.matrix (channel) && ncol (channel) == 1))
         stop ("'channel' must be a vector or a 1-column matrix")
     # For some reason, rowMeans and variants do not work on 1-column matrices
     if (ki <= 1 || kb <= 1)
         stop ("ki and kb must both be integers greater than one")
 
-    si <- rowify (summaryStatistic.i)
-    sb <- rowify (summaryStatistic.b)
-
     if (is.null (res)) {
         if (verbose)
             cat ("    Computing residuals...\n")
-        res <- residuals.mnf (channel, features.i, as.integer (ki), si)
+        res <- residuals.mnf (channel, features.i, as.integer (ki), summary.stat.i)
     }
 
     if (verbose)
@@ -154,22 +149,18 @@ normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20, 
     res.mapped <- matrix (.C ("map_values", ncells, as.integer (neighbours), as.double (res), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]] , nrow = length (res))
 
     b <- !is.na (res)
-    channel[b] <- channel[b] - sb (res.mapped[b,])
+    channel[b] <- channel[b] - apply (res.mapped[b,], 1, summary.stat.b)
     return (channel)
 }
 
-# TODO: I guess this might as well be done with an apply...
-rowify <- function (fun) switch (fun, mean = rowMeans, median = rowMedians, min = rowMin, max = rowMax)
-colify <- function (fun) switch (fun, mean = colMeans, median = colMedians, min = colMin, max = colMax)
-
-residuals.mnf <- function (channel, pos, k, sumStat) {
+residuals.mnf <- function (channel, pos, k, summary.stat) {
     if (is.null (pos))
         return (channel)
 
     neighbours <- knn.mnf (pos, k)
     ncells <- as.integer (prod (dim (neighbours)))
     mappedVals <- .C ("map_values", ncells, as.integer (neighbours), as.double (channel), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE) [[4]]
-    channel - sumStat (matrix (mappedVals, nrow = length (channel)))
+    channel - apply (matrix (mappedVals, nrow = length (channel)), 1, summary.stat)
 }
 
 knn.mnf <- function (v, k, ...) {
@@ -207,7 +198,7 @@ image.mnf.repres <- function (batch, samples, which = 1:length (batch), transfo 
 }
 
 image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2, shuffle = FALSE, cutoff = 0.5, col = pseudoPalette (low = "blue", high = "red", mid = "white"), ...) {
-    require (affyPLM)
+    library (affyPLM)
 
     if (is.function (transfo))
         pm (batch) <- transfo (pm (batch))
