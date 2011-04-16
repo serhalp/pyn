@@ -25,6 +25,7 @@ typedef struct {
 
 void grid_neighbours (int *, int *, int *, int *, int *);
 Grid generate_grid (int, int *, int *);
+void map_to_grid (int *, double *, int *, int *, double *);
 inline int grid_get (Grid *, int, int);
 inline void grid_set (Grid *, int, int, int);
 

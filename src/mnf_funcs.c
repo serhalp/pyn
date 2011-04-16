@@ -95,6 +95,20 @@ Grid generate_grid (int n, int *x, int *y) {
     return grid;
 }
 
+/* This is pretty tricky: you need to figure out in advance the correct length
+ * for the output matrix (actually, vector) 'g'; that is max(x) * max(y).
+ * TODO: Maybe eventually rewrite this with the .Call interface to avoid this. */
+void map_to_grid (int *n, double *vals, int *x, int *y, double *g) {
+    int w = 0; /* max(x), i.e. width of output grid */
+    for (int i = 0; i < *n; ++i)
+        if (x[i] > w)
+            w = x[i];
+    ++w;
+
+    for (int i = 0; i < *n; ++i)
+        g[x[i] + y[i] * w] = vals[i];
+}
+
 inline int grid_get (Grid *grid, int i, int j) {
     return grid->g[i + j * grid->w];
 }
