@@ -143,9 +143,6 @@ normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20,
 {
     if (!is.vector (channel) && !(is.matrix (channel) && ncol (channel) == 1))
         stop ("'channel' must be a vector or a 1-column matrix")
-    # For some reason, rowMeans and variants do not work on 1-column matrices
-    if (ki <= 1 || kb <= 1)
-        stop ("ki and kb must both be integers greater than one")
 
     if (is.null (res)) {
         if (verbose)
@@ -165,7 +162,7 @@ normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20,
     ) [[4]], nrow = length (res))
 
     b <- !is.na (res)
-    channel[b] <- channel[b] - apply (res.mapped[b,], 1, summary.stat.b)
+    channel[b] <- channel[b] - apply (res.mapped[b, , drop = FALSE], 1, summary.stat.b)
     return (channel)
 }
 
