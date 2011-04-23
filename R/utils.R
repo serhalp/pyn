@@ -52,7 +52,7 @@ which.pm <- function (batch) {
     # TODO
 }
 
-compute.degs <- function (batch, design, contrasts, which.contrasts = 1, n = Inf,
+compute.degs <- function (batch, design, contrasts, which.contrasts = NULL, n = Inf,
     sort.by = "logFC")
 {
     library (limma)
@@ -61,6 +61,9 @@ compute.degs <- function (batch, design, contrasts, which.contrasts = 1, n = Inf
     fit <- lmFit (eset, design)
     cfit <- contrasts.fit (fit, contrasts)
     cfit <- eBayes (cfit)
+
+    if (is.null (which.contrasts))
+        which.contrasts <- 1:ncol (contrasts)
 
     degs <- lapply (which.contrasts, function (coef)
         topTable (cfit, coef = coef, sort.by = sort.by, number = n)[, c ("ID", "logFC")])
@@ -73,13 +76,14 @@ common.degs <- function (a, b, n = 100) {
 }
 
 plot.common.degs <- function (a, b, n = 1:1000) {
-    plot (n, sapply (n, common.degs, a = a[[1]], b = b[[1]]),
-        type = "l", lty = 1, ylim = c (0, 1))
+    plot (n, 100 * sapply (n, common.degs, a = a[[1]], b = b[[1]]), type = "l",
+        lty = 1, ylim = c (0, 100), xlab = "Number of differentially expressed genes",
+        ylab = "% overlap between original and corrected")
 
     if (length (a) > 1) {
         for (i in 2:length (a)) {
-            lines (n, sapply (n, common.degs, a = a[[i]], b = b[[i]]),
-                type = "l", lty = (i %% 6) + 1, ylim = c (0, 1))
+            lines (n, 100 * sapply (n, common.degs, a = a[[i]], b = b[[i]]),
+                type = "l", lty = (i %% 6) + 1, ylim = c (0, 100))
         }
     }
 }
