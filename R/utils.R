@@ -18,9 +18,11 @@ f.test <- function (m) {
     return ((ft$bss / ft$bdf) / (ft$wss / ft$wdf))
 }
 
+# FIXME: Rename to make non residual specific.
 res.as.matrix <- function (r, grid) {
     o <- as.double (rep (NA, max (grid[,1] + 1) * max (grid[,2] + 1)))
-    null <- .C ("map_to_grid", as.integer (length (r)), as.double (r), as.integer (grid[,1]), as.integer (grid[,2]), o, DUP = FALSE, NAOK = TRUE)
+    null <- .C ("map_to_grid", as.integer (length (r)), as.double (r),
+        as.integer (grid[,1]), as.integer (grid[,2]), o, DUP = FALSE, NAOK = TRUE)
     return (matrix (o, nrow = max (grid[,1]) + 1))
 }
 
@@ -37,7 +39,8 @@ plot.res.stats <- function (m, mn) {
     null2n[is.infinite (null2n)] <- NA
     null3n <- apply (mn, 1, sd, na.rm = TRUE)
 
-    plot (1:712, null, type = "p", cex = 0.3, ylim = range (c (m, mn), na.rm = TRUE), col = "red")
+    plot (1:712, null, type = "p", cex = 0.3, ylim = range (c (m, mn), na.rm = TRUE),
+        col = "red")
     lines (spline (1:712, null), col = "red")
     lines (spline (1:712, rowMeans (m, na.rm = TRUE)), col = "blue")
     lines (spline (1:712, null2), col = "green")
