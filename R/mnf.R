@@ -209,6 +209,8 @@ image.mnf.repres <- function (batch, samples, which = 1:length (batch),
 {
     num.probes <- nrow (exprs (batch))
     num.samples <- length (unique (samples))
+    if (shuffle)
+        cat ("Apparently, shuffle is not actually implemented.")
 
     if (is.function (transfo))
         pm (batch) <- transfo (pm (batch))
@@ -222,12 +224,11 @@ image.mnf.repres <- function (batch, samples, which = 1:length (batch),
     return (summary (pm (batch.res)))
 }
 
-image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2, 
-    shuffle = FALSE, cutoff = 0.5, col = pseudoPalette (
-        low = "blue", high = "red", mid = "white"
-    ), ...)
+image.mnf.psres <- function (batch, grid, which = 1:length (batch), transfo = log2, 
+    draw.legend = TRUE, shuffle = FALSE, ...)
 {
-    library (affyPLM)
+    breaks <- c (-10, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10)
+    cols <- c (rgb (0, 0, seq (1, 0.5, -0.1)), rgb (seq (0.5, 1, 0.1), 0, 0))
 
     if (is.function (transfo))
         pm (batch) <- transfo (pm (batch))
@@ -238,11 +239,16 @@ image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2,
         col <- residuals.mnf.probeset (exprs (batch)[,e], indices)
         if (shuffle)
             col[!is.na (col)] <- sample (col[!is.na (col)])
-        col[abs (col) < cutoff] <- NA
-        return (col)
+        m <- res.as.matrix (col, grid)
+        image (m[,!is.na (m[225,])], col = cols, breaks = breaks, xaxt = "n", yaxt = "n")
     }
 
-    exprs (batch.res) <- sapply (1:length (batch), image.mnf.psres.array)
-    image (batch.res[,which], transfo = NULL, col = col, ...)
-    return (summary (pm (batch.res)))
+    lapply (which, image.mnf.psres.array)
+
+    if (draw.legend) {
+        levels <- seq (min (breaks), max (breaks), length = length (cols))
+        image (levels, 1, matrix (levels, ncol = 1), col = cols, yaxt = "n", xlab = "", ylab = "")
+    }
+
+    return (NULL)
 }
