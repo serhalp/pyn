@@ -78,7 +78,7 @@ summarize.mnf <- function (batch, summary.stat = mean, verbose = TRUE) {
 }
 
 normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
-    dolog = TRUE, doexp = FALSE, verbose = TRUE, ...)
+    dolog = TRUE, doexp = FALSE, use.median = FALSE, verbose = TRUE, ...)
 {
     e <- exprs (batch)
     indices <- indexProbes (batch, which = "pm")
@@ -92,7 +92,7 @@ normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
 
         if (is.null (features.i)) {
             if (is.null (res.pre))
-                res <- residuals.mnf.probeset (e[,a], indices)
+                res <- residuals.mnf.probeset (e[,a], indices, use.median)
             else
                 res <- res.pre[,a]
         } else {
@@ -123,8 +123,8 @@ normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
     return (batch)
 }
 
-residuals.mnf.probeset <- function (values, indices) {
-    return (.Call ("affy_residuals", indices, values))
+residuals.mnf.probeset <- function (values, indices, use.median = FALSE) {
+    return (.Call ("affy_residuals", indices, values, as.logical (use.median)))
 }
 
 residuals.mnf.replicate <- function (values, samples) {

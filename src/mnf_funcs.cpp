@@ -9,7 +9,9 @@
 // =====================================================================================
 
 #include <stdlib.h>
+#include <math.h>
 #include <time.h>
+#include <algorithm>
 #include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
@@ -165,7 +167,8 @@ void map_values (int *n, int *indices, double *values, double *mapped) {
             mapped[i] = values[indices[i] - 1]; // 1-offset to 0-offset
 }
 
-SEXP affy_residuals (SEXP sets, SEXP vals) {
+SEXP affy_residuals (SEXP sets, SEXP vals, SEXP _use_median) {
+    int *use_median = LOGICAL (_use_median);
     unsigned int n_ps   = length (sets), // num. of probesets
                  n_vals = length (vals); // num. of total probes
     double *p_vals = NUMERIC_POINTER (vals);
@@ -182,15 +185,27 @@ SEXP affy_residuals (SEXP sets, SEXP vals) {
         int *p_elem = INTEGER_POINTER (elem);
         unsigned int n_p = length (elem);
 
-        // Compute this probeset's mean value once first
-        double mean = 0.0;
-        for (unsigned int p = 0; p < n_p; ++p)
-            mean += p_vals[p_elem[p] - 1];
-        mean /= n_p;
+        double res_estimate = 0.0;
+        if (*use_median == TRUE) {
+            // Compute this probeset's median
+            double *p_ps_res = (double *) R_alloc (n_p, sizeof (double));
+            for (unsigned int p = 0; p < n_p; ++p)
+                p_ps_res[p] = p_vals[p_elem[p] - 1];
+            std::nth_element (p_ps_res, p_ps_res + (int) floor ((n_p - 1) / 2), p_ps_res + n_p);
+            double lower_median = p_ps_res[(int) floor ((n_p - 1) / 2)];
+            std::nth_element (p_ps_res, p_ps_res + (int) ceil ((n_p - 1) / 2), p_ps_res + n_p);
+            double upper_median = p_ps_res[(int) ceil ((n_p - 1) / 2)];
+            res_estimate = (lower_median + upper_median) / 2;
+        } else {
+            // Compute this probeset's arithmetic mean
+            for (unsigned int p = 0; p < n_p; ++p)
+                res_estimate += p_vals[p_elem[p] - 1];
+            res_estimate /= n_p;
+        }
 
-        // Subtract mean from each value in probeset to get residual
+        // Subtract res. estimate from each value in probeset to get residual
         for (unsigned int p = 0; p < n_p; ++p)
-            p_res[p_elem[p] - 1] = p_vals[p_elem[p] - 1] - mean;
+            p_res[p_elem[p] - 1] = p_vals[p_elem[p] - 1] - res_estimate;
 
         UNPROTECT (1);
     }
