@@ -23,18 +23,20 @@ typedef struct {
     int n;
 } Array;
 
-void grid_neighbours (int *, int *, int *, int *, int *);
-Grid generate_grid (int, int *, int *);
-void map_to_grid (int *, double *, int *, int *, double *);
-inline int grid_get (Grid *, int, int);
-inline void grid_set (Grid *, int, int, int);
+extern "C" {
+    void grid_neighbours (int *, int *, int *, int *, int *);
+    Grid generate_grid (int, int *, int *);
+    void map_to_grid (int *, double *, int *, int *, double *);
+    inline int grid_get (Grid *, int, int);
+    inline void grid_set (Grid *, int, int, int);
 
-void array_neighbours (int *, int *, int *, int *);
-Array generate_array (int, int *);
+    void array_neighbours (int *, int *, int *, int *);
+    Array generate_array (int, int *);
 
-void map_values (int *, int *, double *, double *);
+    void map_values (int *, int *, double *, double *);
 
-SEXP affy_residuals (SEXP, SEXP);
+    SEXP affy_residuals (SEXP, SEXP, SEXP);
+}
 
 #endif
 
