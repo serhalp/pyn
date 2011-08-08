@@ -87,3 +87,51 @@ plot.common.degs <- function (a, b, n = 1:1000) {
         }
     }
 }
+
+cor.diag <- function (batch, pos, d = 1, dx = NULL, dy = NULL, res = FALSE) {
+    if (res)
+        indices <- indexProbes (batch, which = "pm")
+    else
+        mm (batch) <- NA
+
+    if (is.null (dx) & is.null (dy))
+        dx <- dy <- d
+
+    return (apply (log2 (exprs (batch)), 2, function (a) {
+        if (res)
+            a <- residuals.mnf.probeset (a, indices)
+        pm.matrix <- res.as.matrix (a, pos)
+        pm.matrix.shifted <- pm.matrix[-(1:dx), -(1:dy)]
+        pm.matrix <- pm.matrix[-((nrow (pm.matrix) - dx + 1):(nrow (pm.matrix))),
+            -((ncol (pm.matrix) - dy + 1):(ncol (pm.matrix)))]
+
+        return (cor (as.vector (pm.matrix), as.vector (pm.matrix.shifted),
+            use = "complete.obs"))
+    }))
+}
+
+cor.window <- function (batch, pos, res = FALSE) {
+    if (res)
+        indices <- indexProbes (batch, which = "pm")
+    else
+        mm (batch) <- NA
+
+    return (apply (log2 (exprs (batch)), 2, function (a) {
+        if (res)
+            a <- residuals.mnf.probeset (a, indices)
+        pm.matrix <- res.as.matrix (a, pos)
+        n <- nrow (pm.matrix)
+        m <- ncol (pm.matrix)
+        pm.matrix.neighbours <- list (
+            pm.matrix[2:(n - 1), 1:(m - 2)],
+            pm.matrix[1:(n - 2), 2:(m - 1)],
+            pm.matrix[2:(n - 1), 3:m],
+            pm.matrix[3:n, 2:(m - 1)]
+        )
+        pm.matrix.neighbours.avg <- matrix (rowMeans (sapply (
+            pm.matrix.neighbours, as.vector), na.rm = T), nrow = n - 2)
+
+        return (cor (as.vector (pm.matrix[2:(n - 1), 2:(m - 1)]),
+            as.vector (pm.matrix.neighbours.avg), use = "complete.obs"))
+    }))
+}
