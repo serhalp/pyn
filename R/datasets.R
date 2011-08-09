@@ -11,7 +11,7 @@ datasets.data.corrected <- function (batches = datasets.data (), dolog = T, doex
     grid.spikein <- indices2xy (seq (nrow (exprs (spikein))), abatch = spikein)
     grids <- list (grid.133a, grid.133a, grid.spikein)
     a <- list (5, 3, 16)
-    batches.mnf <- mapply (function (batch, idx, g) normalize.mnf (batch[,idx], NULL, g,
+    batches.mnf <- mapply (function (batch, idx, g) normalize.mnf (batch[, idx], NULL, g,
         dolog = dolog, doexp = doexp, ...), batches, a, grids)
     return (batches.mnf)
 }

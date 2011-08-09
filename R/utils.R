@@ -20,10 +20,10 @@ f.test <- function (m) {
 
 # FIXME: Rename to make non residual specific.
 res.as.matrix <- function (r, grid) {
-    o <- as.double (rep (NA, max (grid[,1] + 1) * max (grid[,2] + 1)))
+    o <- as.double (rep (NA, max (grid[, 1] + 1) * max (grid[, 2] + 1)))
     null <- .C ("map_to_grid", as.integer (length (r)), as.double (r),
-        as.integer (grid[,1]), as.integer (grid[,2]), o, DUP = FALSE, NAOK = TRUE)
-    return (matrix (o, nrow = max (grid[,1]) + 1))
+        as.integer (grid[, 1]), as.integer (grid[, 2]), o, DUP = FALSE, NAOK = TRUE)
+    return (matrix (o, nrow = max (grid[, 1]) + 1))
 }
 
 plot.res.stats <- function (m, mn) {
@@ -144,7 +144,7 @@ cor.window <- function (batch, pos, res = FALSE) {
 apply.res.probeset <- function (batches) {
     a <- list (5, 3, 16)
     indices <- lapply (batches, indexProbes, which = "pm")
-    res <- mapply (function (batch, idx, ind) residuals.mnf.probeset (log2 (exprs (batch[,idx])), ind), batches, a, indices, SIMPLIFY = F)
+    res <- mapply (function (batch, idx, ind) residuals.mnf.probeset (log2 (exprs (batch[, idx])), ind), batches, a, indices, SIMPLIFY = F)
     return (res)
 }
 

@@ -50,14 +50,14 @@ mnf <- function (batch, samples, interest = "probeset", bias = "grid",
 
         # Compute p-value of two-sample t-test, for each gene
         p.values <- sapply (seq (num.genes), function (g)
-            t.test.p.value (exprs.genes[g,arrays.first], exprs.genes[g,arrays.second]))
+            t.test.p.value (exprs.genes[g, arrays.first], exprs.genes[g, arrays.second]))
 
         return (data.frame (
-            fold.change = rowMeans (exprs.genes[,arrays.first]) -
-                rowMeans (exprs.genes[,arrays.second]),
+            fold.change = rowMeans (exprs.genes[, arrays.first]) -
+                rowMeans (exprs.genes[, arrays.second]),
             p.value = p.values,
-            var = apply (exprs.genes[,arrays.first], 1, var) +
-                apply (exprs.genes[,arrays.second], 1, var),
+            var = apply (exprs.genes[, arrays.first], 1, var) +
+                apply (exprs.genes[, arrays.second], 1, var),
             row.names = featureNames (batch)))
     }
 
@@ -74,7 +74,7 @@ summarize.mnf <- function (batch, summary.stat = mean, verbose = TRUE) {
     exprs.probes <- exprs (batch)
     # TODO: (Maybe) return ExpressionSet/eSet here rather than just a matrix.
     return (t (sapply (indexProbes (batch, which = "pm"), function (ps)
-        apply (exprs.probes[ps,], 2, summary.stat))))
+        apply (exprs.probes[ps, ], 2, summary.stat))))
 }
 
 normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
@@ -92,9 +92,9 @@ normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
 
         if (is.null (features.i)) {
             if (is.null (res.pre))
-                res <- residuals.mnf.probeset (e[,a], indices, use.median)
+                res <- residuals.mnf.probeset (e[, a], indices, use.median)
             else
-                res <- res.pre[,a]
+                res <- res.pre[, a]
         } else {
             # TODO: Refactor handling of bias/interest/features, to avoid nonsense like this.
             stop ("'probeset' is currently the only valid value for 'interest'.")
@@ -102,8 +102,8 @@ normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
 
         # Make sure non-pm probes are not considered grid neighbours.
         features.b.pm <- features.b
-        features.b.pm[is.na (res),] <- NA
-        return (normalizeChannel (e[,a], features.i = features.i,
+        features.b.pm[is.na (res), ] <- NA
+        return (normalizeChannel (e[, a], features.i = features.i,
             features.b = features.b.pm, res = res, verbose = verbose, ...)
         )
     }
@@ -129,7 +129,7 @@ residuals.mnf.probeset <- function (values, indices, use.median = FALSE) {
 
 residuals.mnf.replicate <- function (values, samples) {
     residuals.mnf.replicate.sample <- function (s) {
-        e <- values[,which (samples == s)]
+        e <- values[, which (samples == s)]
         cols <- e - rowMeans (e)
         return (cols)
     }
@@ -182,7 +182,7 @@ knn.mnf <- function (v, k, ...) {
     if (is.vector (v) || (is.matrix (v) && dim (v) [2] == 1))
         knn.mnf.1D (v, k, ...)
     else if ((is.matrix (v) || is.data.frame (v)) && dim (v) [2] == 2)
-        knn.mnf.2D (v[,1], v[,2], k, ...)
+        knn.mnf.2D (v[, 1], v[, 2], k, ...)
     else
         stop ("'v' must be a vector or a 1- or 2-column matrix")
 }
@@ -220,7 +220,7 @@ image.mnf.repres <- function (batch, samples, which = 1:length (batch),
     )
 
     pm (batch.res) <- residuals.mnf.replicate (pm (batch), samples)
-    image (batch.res[,which], transfo = NULL, col = col, ...)
+    image (batch.res[, which], transfo = NULL, col = col, ...)
     return (summary (pm (batch.res)))
 }
 
@@ -236,11 +236,11 @@ image.mnf.psres <- function (batch, grid, which = 1:length (batch), transfo = lo
     indices <- indexProbes (batch, which = "pm")
 
     image.mnf.psres.array <- function (e) {
-        col <- residuals.mnf.probeset (exprs (batch)[,e], indices)
+        col <- residuals.mnf.probeset (exprs (batch)[, e], indices)
         if (shuffle)
             col[!is.na (col)] <- sample (col[!is.na (col)])
         m <- res.as.matrix (col, grid)
-        image (m[,!is.na (m[225,])], col = cols, breaks = breaks, xaxt = "n", yaxt = "n")
+        image (m[, !is.na (m[225, ])], col = cols, breaks = breaks, xaxt = "n", yaxt = "n")
     }
 
     lapply (which, image.mnf.psres.array)
