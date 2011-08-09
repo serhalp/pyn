@@ -5,20 +5,17 @@ library (affy)
 dyn.load (paste ("~/workspace/rmnf/src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
 
 mnf <- function (batch, samples, interest = "probeset", bias = "grid",
-    features.i = NULL, features.b = NULL, verbose = TRUE, ...)
-{
+                 features.i = NULL, features.b = NULL, verbose = TRUE, ...) {
     if (is.null (features.i)) {
         features.i <- switch (interest,
-            probeset = NULL, # FIXME: This is not very expressive...
-            stop ("Need one of 'interest' or 'features.i'")
-        )
+                              probeset = NULL, # FIXME: This is not very expressive...
+                              stop ("Need one of 'interest' or 'features.i'"))
     }
 
     if (is.null (features.b)) {
         features.b <- switch (bias,
-            grid = indices2xy (seq (nrow (exprs (batch))), abatch = batch),
-            none = NULL,
-            stop ("Need one of 'bias' or 'features.b'")
+                              grid = indices2xy (seq (nrow (exprs (batch))), abatch = batch),
+                              none = NULL, stop ("Need one of 'bias' or 'features.b'")
         )
     }
 
@@ -73,13 +70,13 @@ summarize.mnf <- function (batch, summary.stat = mean, verbose = TRUE) {
         cat ("Summarizing probeset intensities...\n")
     exprs.probes <- exprs (batch)
     # TODO: (Maybe) return ExpressionSet/eSet here rather than just a matrix.
-    return (t (sapply (indexProbes (batch, which = "pm"), function (ps)
-        apply (exprs.probes[ps, ], 2, summary.stat))))
+    return (t (sapply (indexProbes (batch, which = "pm"),
+                       function (ps) apply (exprs.probes[ps, ], 2, summary.stat))))
 }
 
 normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
-    dolog = TRUE, doexp = FALSE, use.median = FALSE, verbose = TRUE, ...)
-{
+                           dolog = TRUE, doexp = FALSE, use.median = FALSE,
+                           verbose = TRUE, ...) {
     e <- exprs (batch)
     indices <- indexProbes (batch, which = "pm")
 
@@ -104,8 +101,8 @@ normalize.mnf <- function (batch, features.i, features.b, res.pre = NULL,
         features.b.pm <- features.b
         features.b.pm[is.na (res), ] <- NA
         return (normalizeChannel (e[, a], features.i = features.i,
-            features.b = features.b.pm, res = res, verbose = verbose, ...)
-        )
+                                  features.b = features.b.pm, res = res,
+                                  verbose = verbose, ...))
     }
 
     if (!is.null (features.b)) {
@@ -139,8 +136,8 @@ residuals.mnf.replicate <- function (values, samples) {
 
 # TODO: Refactor normalize.mnf + normalizeChannel (into one function?)
 normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20,
-    summary.stat.i = mean, summary.stat.b = mean, res = NULL, verbose = TRUE)
-{
+                              summary.stat.i = mean, summary.stat.b = mean,
+                              res = NULL, verbose = TRUE) {
     if (!is.vector (channel) && !(is.matrix (channel) && ncol (channel) == 1))
         stop ("'channel' must be a vector or a 1-column matrix")
 
@@ -158,8 +155,9 @@ normalizeChannel <- function (channel, features.i, features.b, ki = 2, kb = 20,
         cat ("    Correcting values...\n")
     ncells <- as.integer (prod (dim (neighbours)))
     res.mapped <- matrix (.C ("map_values", ncells, as.integer (neighbours),
-        as.double (res), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE
-    ) [[4]], nrow = length (res))
+                              as.double (res), as.double (rep (NA, ncells)),
+                              NAOK = TRUE, DUP = FALSE) [[4]],
+                          nrow = length (res))
 
     b <- !is.na (res)
     channel[b] <- channel[b] - apply (res.mapped[b, , drop = FALSE], 1, summary.stat.b)
@@ -173,8 +171,8 @@ residuals.mnf <- function (channel, pos, k, summary.stat) {
     neighbours <- knn.mnf (pos, k)
     ncells <- as.integer (prod (dim (neighbours)))
     mappedVals <- .C ("map_values", ncells, as.integer (neighbours),
-        as.double (channel), as.double (rep (NA, ncells)), NAOK = TRUE, DUP = FALSE
-    ) [[4]]
+                      as.double (channel), as.double (rep (NA, ncells)),
+                      NAOK = TRUE, DUP = FALSE) [[4]]
     channel - apply (matrix (mappedVals, nrow = length (channel)), 1, summary.stat)
 }
 
@@ -203,10 +201,8 @@ knn.mnf.2D <- function (x, y, k) {
 
 # TODO: 'image.mnf.repres' and 'image.mnf.psres' can probably be combined
 image.mnf.repres <- function (batch, samples, which = 1:length (batch),
-    transfo = log2, shuffle = FALSE, col = pseudoPalette (
-        low = "blue", high = "red", mid = "white"
-    ), ...)
-{
+                              transfo = log2, shuffle = FALSE,
+                              col = rainbow (50), ...) {
     num.probes <- nrow (exprs (batch))
     num.samples <- length (unique (samples))
     if (shuffle)
@@ -216,17 +212,16 @@ image.mnf.repres <- function (batch, samples, which = 1:length (batch),
         pm (batch) <- transfo (pm (batch))
     batch.res <- batch
     exprs (batch.res) <- matrix (NA, ncol = ncol (exprs (batch)),
-        nrow = nrow (exprs (batch))
-    )
+                                 nrow = nrow (exprs (batch)))
 
     pm (batch.res) <- residuals.mnf.replicate (pm (batch), samples)
     image (batch.res[, which], transfo = NULL, col = col, ...)
     return (summary (pm (batch.res)))
 }
 
-image.mnf.psres <- function (batch, grid, which = 1:length (batch), transfo = log2, 
-    draw.legend = TRUE, shuffle = FALSE, ...)
-{
+image.mnf.psres <- function (batch, grid, which = 1:length (batch),
+                             transfo = log2, draw.legend = TRUE,
+                             shuffle = FALSE, ...) {
     breaks <- c (-10, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10)
     cols <- c (rgb (0, 0, seq (1, 0.5, -0.1)), rgb (seq (0.5, 1, 0.1), 0, 0))
 
@@ -240,14 +235,16 @@ image.mnf.psres <- function (batch, grid, which = 1:length (batch), transfo = lo
         if (shuffle)
             col[!is.na (col)] <- sample (col[!is.na (col)])
         m <- res.as.matrix (col, grid)
-        image (m[, !is.na (m[225, ])], col = cols, breaks = breaks, xaxt = "n", yaxt = "n")
+        image (m[, !is.na (m[225, ])], col = cols, breaks = breaks, xaxt = "n",
+               yaxt = "n")
     }
 
     lapply (which, image.mnf.psres.array)
 
     if (draw.legend) {
         levels <- seq (min (breaks), max (breaks), length = length (cols))
-        image (levels, 1, matrix (levels, ncol = 1), col = cols, yaxt = "n", xlab = "", ylab = "")
+        image (levels, 1, matrix (levels, ncol = 1), col = cols, yaxt = "n",
+               xlab = "", ylab = "")
     }
 
     return (NULL)
