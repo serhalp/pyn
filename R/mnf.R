@@ -85,6 +85,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
         dimnames (e) <- dimnames.bak
     } else {
         warning ("Warning: not actually normalizing arrays, as no bias space was specified.")
+    }
 
     if (do.exp)
         e <- 2 ^ e
