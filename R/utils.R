@@ -56,8 +56,7 @@ which.pm <- function (batch) {
 }
 
 compute.degs <- function (batch, design, contrasts, which.contrasts = NULL, n = Inf,
-    sort.by = "logFC", ...)
-{
+                          sort.by = "logFC", ...) {
     library (limma)
 
     eset <- rma (batch, verbose = FALSE)
@@ -155,4 +154,35 @@ hist.res.probeset <- function (batch, res = apply.res.probeset (batch), main = "
 {
     hist (res, breaks = 1000, main = main, xlab = xlab, ylab = ylab, prob = T, ...)
     abline (v = 0, lwd = lwd, col = "red")
+}
+
+image.mnf.psres <- function (batch, grid, which = 1:length (batch),
+                             transfo = log2, draw.legend = TRUE,
+                             shuffle = FALSE, ...) {
+    breaks <- c (-10, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10)
+    cols <- c (rgb (0, 0, seq (1, 0.5, -0.1)), rgb (seq (0.5, 1, 0.1), 0, 0))
+
+    if (is.function (transfo))
+        pm (batch) <- transfo (pm (batch))
+    batch.res <- batch
+    indices <- indexProbes (batch, which = "pm")
+
+    image.mnf.psres.array <- function (e) {
+        col <- residuals.mnf.probeset (exprs (batch)[, e], indices)
+        if (shuffle)
+            col[!is.na (col)] <- sample (col[!is.na (col)])
+        m <- res.as.matrix (col, grid)
+        image (m[, !is.na (m[225, ])], col = cols, breaks = breaks, xaxt = "n",
+               yaxt = "n")
+    }
+
+    lapply (which, image.mnf.psres.array)
+
+    if (draw.legend) {
+        levels <- seq (min (breaks), max (breaks), length = length (cols))
+        image (levels, 1, matrix (levels, ncol = 1), col = cols, yaxt = "n",
+               xlab = "", ylab = "")
+    }
+
+    return (NULL)
 }
