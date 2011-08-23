@@ -1,0 +1,2 @@
+export (normalize.mnf, hist.res.probeset, image.mnf.psres)
+useDynLib (mnf)

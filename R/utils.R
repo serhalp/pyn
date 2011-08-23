@@ -1,5 +1,3 @@
-# FIXME: Throw proper library imports in these functions.
-
 downsample.matrix <- function (X, k) {
     group <- function (s) ((s - 1) * k + 1):(s * k)
     sapply (1:(nrow (X) / k),

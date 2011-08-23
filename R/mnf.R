@@ -1,9 +1,5 @@
 # vim:set filetype=r:
 
-library (affy)
-# FIXME: Path here should be relative to package root.
-dyn.load (paste ("~/workspace/rmnf/src/mnf_funcs", .Platform$dynlib.ext, sep = ""))
-
 # TODO: Consider default value of 'do.exp'.
 normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
                            features.i = NULL, features.b = NULL, ki = 2, kb = 20,
