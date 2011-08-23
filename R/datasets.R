@@ -22,7 +22,7 @@ datasets.contrasts <- function () {
     library (limma)
     samples <- list (sort (rep (1:2, 3)), sort (rep (1:6, 3)),
                      c (sort (rep (10:14, 3)), sort (rep (1:9, 3))))
-    designs <- lapply (samples, function (s) model.matrix (~ 0 + factor (s))
+    designs <- lapply (samples, function (s) model.matrix (~ 0 + factor (s)))
     colnames (designs[[1]]) <- c ("MEM", "CYT")
     colnames (designs[[2]]) <- c ("MGd_4h", "ctrl_4h", "MGd_12h", "ctrl_12h",
                                   "MGd_24h", "ctrl_24h")
