@@ -8,7 +8,7 @@
   distribution.
 }
 \usage{
-hist.res.probeset(batch, res = apply.res.probeset(batch), main = "",
+hist.res.probeset(batch, which = 1:length(batch), res = apply.res.probeset(batch), main = "",
                   xlab = "Probe residuals", ylab = "Density", ...)
 }
 \arguments{
