@@ -158,9 +158,9 @@ hist.res.probeset <- function (batch, which = 1:length (batch),
            })
 }
 
-image.mnf.psres <- function (batch, grid, which = 1:length (batch),
-                             transfo = log2, draw.legend = TRUE,
-                             shuffle = FALSE, ...) {
+image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2,
+                             draw.legend = TRUE, shuffle = FALSE, ...) {
+    grid <- indices2xy (seq (nrow (exprs (batch))), abatch = batch)
     breaks <- c (-10, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10)
     cols <- c (rgb (0, 0, seq (1, 0.5, -0.1)), rgb (seq (0.5, 1, 0.1), 0, 0))
 
