@@ -188,3 +188,21 @@ image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2,
 
     return (NULL)
 }
+
+autocor.plot <- function (cor.before, cor.after, s = NULL, xlim = c (0, 1), ylim = xlim,
+                          col = c ("green", "blue", "red", "purple", "orange"),
+                          pch.solid = 15:18, pch.empty = c (22, 21, 24, 23),
+                          xlab = "Spatial autocorrelation in original intensities",
+                          ylab = "Spatial autocorrelation in corrected intensities", ...) {
+    n <- length (cor.before)
+    plot (1, 1, type = "n", xlab = xlab, ylab = ylab, xlim = xlim, ylim = ylim, ...)
+    abline (0, 1, lty = "dotted", pch = 19)
+    legend ("topleft", legend = c (names (cor.before), names (s)), col = col[1:n],
+            pch = c (pch.empty[1:n], pch.solid[1:n]), ncol = ifelse (is.null (s), 1, 2))
+    mapply (function (i, b, a) lines (a ~ b, type = "p", cex = cex,
+                                             pch = ifelse (s[i] == 1:length (b),
+                                                           pch.solid[i], pch.empty[i]),
+                                             col = col[i], ...),
+            1:length (wc), cor.before, cor.after)
+    return (NULL)
+}
