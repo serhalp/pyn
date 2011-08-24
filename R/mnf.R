@@ -58,7 +58,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
 
         if (verbose)
             cat ("    Locating neighbours in bias space...\n")
-        neighbours <- knn.mnf (features.b, as.integer (kb))
+        neighbours <- knn.mnf (features.b.pm, as.integer (kb))
 
         if (verbose)
             cat ("    Correcting values...\n")
