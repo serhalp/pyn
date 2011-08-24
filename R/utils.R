@@ -132,7 +132,7 @@ cor.window <- function (batch, pos, res = FALSE) {
         )
         pm.matrix.neighbours.avg <- matrix (rowMeans (sapply (pm.matrix.neighbours,
                                                               as.vector),
-                                                      na.rm = T), nrow = n - 2)
+                                                      na.rm = TRUE), nrow = n - 2)
 
         return (cor (as.vector (pm.matrix[2:(n - 1), 2:(m - 1)]),
                      as.vector (pm.matrix.neighbours.avg), use = "complete.obs"))
