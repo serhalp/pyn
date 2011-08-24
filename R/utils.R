@@ -139,19 +139,23 @@ cor.window <- function (batch, pos, res = FALSE) {
     }))
 }
 
-apply.res.probeset <- function (batches) {
-    a <- list (5, 3, 16)
-    indices <- lapply (batches, indexProbes, which = "pm")
-    res <- mapply (function (batch, idx, ind) residuals.mnf.probeset (log2 (exprs (batch[, idx])), ind),
-                   batches, a, indices, SIMPLIFY = F)
+apply.res.probeset <- function (batch) {
+    indices <- indexProbes (batch, which = "pm")
+    res <- sapply (1:length (batch),
+                   function (a) residuals.mnf.probeset (log2 (exprs (batch[, a])), indices))
     return (res)
 }
 
-hist.res.probeset <- function (batch, res = apply.res.probeset (batch), main = "",
-    xlab = "Probe residuals", ylab = "Density", ...)
+hist.res.probeset <- function (batch, which = 1:length (batch),
+                               res = apply.res.probeset (batch[, which]), main = "",
+                               xlab = "Probe residuals", ylab = "Density", ...)
 {
-    hist (res, breaks = 1000, main = main, xlab = xlab, ylab = ylab, prob = T, ...)
-    abline (v = 0, lwd = lwd, col = "red")
+    apply (res, 2,
+           function (r) {
+               hist (res, breaks = 1000, main = main, xlab = xlab, ylab = ylab,
+                     prob = TRUE, ...)
+               abline (v = 0, col = "red")
+           })
 }
 
 image.mnf.psres <- function (batch, grid, which = 1:length (batch),
