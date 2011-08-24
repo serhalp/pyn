@@ -4,7 +4,7 @@
 normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
                            features.i = NULL, features.b = NULL, ki = 2, kb = 20,
                            summary.stat.i = mean, summary.stat.b = mean,
-                           res.pre = NULL, do.log = TRUE, do.exp = FALSE,
+                           res.pre = NULL, do.log = TRUE, do.exp = TRUE,
                            verbose = TRUE, ...) {
     # If no interest space provided, generate the requested one.
     if (is.null (features.i)) {
