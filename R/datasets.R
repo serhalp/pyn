@@ -6,14 +6,14 @@ datasets.data <- function (celfile.path = "./data") {
     return (batches)
 }
 
-datasets.data.corrected <- function (batches = datasets.data (), dolog = T, doexp = T, ...) {
+datasets.data.corrected <- function (batches = datasets.data (), do.log = T, do.exp = T, ...) {
     grid.133a <- indices2xy (seq (nrow (exprs (gse1400))), abatch = gse1400)
     grid.spikein <- indices2xy (seq (nrow (exprs (spikein))), abatch = spikein)
     grids <- list (grid.133a, grid.133a, grid.spikein)
     a <- list (5, 3, 16)
     batches.mnf <- mapply (function (batch, idx, g) normalize.mnf (batch[, idx],
-                                                                   NULL, g, dolog = dolog,
-                                                                   doexp = doexp, ...),
+                                                                   NULL, g, do.log = do.log,
+                                                                   do.exp = do.exp, ...),
                            batches, a, grids)
     return (batches.mnf)
 }
