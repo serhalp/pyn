@@ -199,7 +199,7 @@ autocor.plot <- function (cor.before, cor.after, s = NULL, xlim = c (0, 1), ylim
     abline (0, 1, lty = "dotted", pch = 19)
     legend ("topleft", legend = c (names (cor.before), names (s)), col = col[1:n],
             pch = c (pch.empty[1:n], pch.solid[1:n]), ncol = ifelse (is.null (s), 1, 2))
-    mapply (function (i, b, a) lines (a ~ b, type = "p", cex = cex,
+    mapply (function (i, b, a) lines (a ~ b, type = "p",
                                              pch = ifelse (s[i] == 1:length (b),
                                                            pch.solid[i], pch.empty[i]),
                                              col = col[i], ...),
