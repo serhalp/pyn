@@ -171,7 +171,7 @@ image.mnf.psres <- function (batch, grid, which = 1:length (batch),
             col[!is.na (col)] <- sample (col[!is.na (col)])
         m <- res.as.matrix (col, grid)
         image (m[, !is.na (m[225, ])], col = cols, breaks = breaks, xaxt = "n",
-               yaxt = "n")
+               yaxt = "n", ...)
     }
 
     lapply (which, image.mnf.psres.array)
@@ -179,7 +179,7 @@ image.mnf.psres <- function (batch, grid, which = 1:length (batch),
     if (draw.legend) {
         levels <- seq (min (breaks), max (breaks), length = length (cols))
         image (levels, 1, matrix (levels, ncol = 1), col = cols, yaxt = "n",
-               xlab = "", ylab = "")
+               xlab = "", ylab = "", ...)
     }
 
     return (NULL)
