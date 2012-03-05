@@ -112,13 +112,13 @@ cor.diag <- function (batch, pos, d = 1, dx = NULL, dy = NULL, res = FALSE) {
     }))
 }
 
-cor.window <- function (batch, pos, res = FALSE) {
+cor.window <- function (batch, pos, res = FALSE, transfo = log2) {
     if (res)
         indices <- indexProbes (batch, which = "pm")
     else
         mm (batch) <- NA
 
-    return (apply (log2 (exprs (batch)), 2, function (a) {
+    return (apply (transfo (exprs (batch)), 2, function (a) {
         if (res)
             a <- residuals.mnf.probeset (a, indices)
         pm.matrix <- res.as.matrix (a, pos)
@@ -147,14 +147,15 @@ apply.res.probeset <- function (batch) {
 }
 
 hist.res.probeset <- function (batch, which = 1:length (batch),
-                               res = apply.res.probeset (batch[, which]), main = "",
-                               xlab = "Probe residuals", ylab = "Density", ...)
+                               res = apply.res.probeset (batch[, which]), zero.line = TRUE,
+                               main = "", xlab = "Probe residuals", ylab = "Density", ...)
 {
     apply (res, 2,
            function (r) {
                hist (r, breaks = 1000, main = main, xlab = xlab, ylab = ylab,
                      prob = TRUE, ...)
-               abline (v = 0, col = "red")
+               if (zero.line)
+                   abline (v = 0, col = "red")
            })
 }
 
