@@ -1,6 +1,17 @@
 # vim:set filetype=r:
 
-# TODO: Consider default value of 'do.exp'.
+serhal.lemieux.2012 <- function (batch, ...) {
+    return (normalize.mnf (batch, interest = "probeset", bias = "spatial", ...))
+}
+
+upton.lloyd.2005 <- function (batch, ...) {
+    batch <- normalize.mnf (batch, res.pre = exprs (batch), bias = "spatial",
+                            summary.stat.b = "min", kb = 8, do.log = FALSE,
+                            do.exp = FALSE, ...)
+    exprs (batch)[exprs (batch) < 0] <- 0
+    return (batch)
+}
+
 normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
                            features.i = NULL, features.b = NULL, ki = 2, kb = 20,
                            summary.stat.i = "mean", summary.stat.b = "mean",
