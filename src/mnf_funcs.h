@@ -23,6 +23,8 @@ typedef struct {
     int n;
 } Array;
 
+enum SummaryStat {MEAN, MEDIAN, MIN, MAX};
+
 extern "C" {
     void grid_neighbours (int *, int *, int *, int *, int *);
     Grid generate_grid (int, int *, int *);

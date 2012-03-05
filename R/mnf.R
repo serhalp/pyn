@@ -21,11 +21,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
                               stop ("Need one of 'bias' or 'features.b'"))
     }
 
-    # Validate the summary statistics.
-    use.median <- switch (summary.stat.i,
-                          mean = FALSE,
-                          median = TRUE,
-                          stop ("'summary.stat.i' must be either 'mean' or 'median'"))
+    #stopifnot (summary.stat.b %in% c ("mean", "median", "min", "max"))
 
     e <- exprs (batch)
     indices <- indexProbes (batch, which = "pm")
@@ -44,7 +40,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
             if (is.null (features.i)) {
                 if (verbose)
                     cat ("    Computing residuals...\n")
-                res <- residuals.mnf.probeset (e.a, indices, use.median)
+                res <- residuals.mnf.probeset (e.a, indices, summary.stat.i)
             } else {
                 stop ("'probeset' is currently the only valid value for 'interest'.")
             }
@@ -90,8 +86,15 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
     return (batch)
 }
 
-residuals.mnf.probeset <- function (values, indices, use.median = FALSE) {
-    return (.Call ("affy_residuals", indices, values, as.logical (use.median)))
+residuals.mnf.probeset <- function (values, indices, summary.stat = "mean") {
+    stat.id <- switch (summary.stat,
+                       mean = 0,
+                       median = 1,
+                       min = 2,
+                       max = 3,
+                       stop ("'summary.stat.i' must be 'mean', 'median', 'min' or 'max'"))
+
+    return (.Call ("affy_residuals", indices, values, as.integer (stat.id)))
 }
 
 residuals.mnf.replicate <- function (values, samples) {
