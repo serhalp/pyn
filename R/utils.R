@@ -152,7 +152,7 @@ hist.res.probeset <- function (batch, which = 1:length (batch),
 {
     apply (res, 2,
            function (r) {
-               hist (res, breaks = 1000, main = main, xlab = xlab, ylab = ylab,
+               hist (r, breaks = 1000, main = main, xlab = xlab, ylab = ylab,
                      prob = TRUE, ...)
                abline (v = 0, col = "red")
            })
@@ -203,6 +203,6 @@ autocor.plot <- function (cor.before, cor.after, s = NULL, xlim = c (0, 1), ylim
                                              pch = ifelse (s[i] == 1:length (b),
                                                            pch.solid[i], pch.empty[i]),
                                              col = col[i], ...),
-            1:length (wc), cor.before, cor.after)
+            1:length (cor.before), cor.before, cor.after)
     return (NULL)
 }
