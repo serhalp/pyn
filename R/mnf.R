@@ -7,7 +7,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
                            res.pre = NULL, do.log = TRUE, do.exp = TRUE,
                            verbose = TRUE) {
     # If no interest space provided, generate the requested one.
-    if (is.null (features.i)) {
+    if (is.null (features.i) && is.null (res.pre)) {
         features.i <- switch (interest,
                               probeset = NULL, # FIXME: This is not very expressive...
                               stop ("Need one of 'interest' or 'features.i'"))
