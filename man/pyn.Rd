@@ -1,12 +1,15 @@
 \name{normalize.pyn}
 \alias{normalize.pyn}
 \alias{pyn}
+\alias{serhal.lemieux.2012}
+\alias{upton.lloyd.2005}
 \title{
   Normalize microarray data
 }
 \description{
   Main function of the pyn package, which returns a corrected ('normalized') copy of the
-  given AffyBatch.
+  given AffyBatch.  With default arguments, corrects for spatial bias using algorithm
+  proposed in Serhal and Lemieux (2012).
 }
 \usage{
 normalize.pyn(batch, interest = "probeset", bias = "spatial",
@@ -78,14 +81,19 @@ normalize.pyn(batch, interest = "probeset", bias = "spatial",
   }
 }
 \details{
+    serhal.lemieux.2012 calls normalize.pyn with the arguments necessary to reproduce
+    the procedure proposed in Serhal and Lemieux (2012).
+    \\
+    upton.lloyd.2005 calls normalize.pyn with the arguments necessary to reproduce the
+    procedure proposed in Upton and Lloyd (2005).
 }
 \value{
   An 'AffyBatch' object in which the probe intensities have been corrected (or
   'normalized').
 }
 \references{
-  Serhal, P. and Lemieux, S. (2011). Elimination of spatial autocorrelation in microarray
-  data. Bioinformatics, submitted.
+  Serhal, P. and Lemieux, S. (2012). Correction of spatial bias in oligonucleotide array
+  data. BMC Bioinformatics, submitted.
 }
 \author{
   Philippe Serhal \email{philippe.serhal@umontreal.ca} \cr

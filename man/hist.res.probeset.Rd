@@ -9,7 +9,7 @@
 }
 \usage{
 hist.res.probeset(batch, which = 1:length(batch), res = apply.res.probeset(batch[, which]),
-                  main = "", xlab = "Probe residuals", ylab = "Density", ...)
+                  zero.line = TRUE, main = "", xlab = "Probe residuals", ylab = "Density", ...)
 }
 \arguments{
   \item{batch}{
@@ -22,6 +22,9 @@ hist.res.probeset(batch, which = 1:length(batch), res = apply.res.probeset(batch
     precomputed residual matrix; if NULL, residuals are computed as usual, based on the
     definition R = Y - Y_hat, where Y is the probe intensity and Y_hat is the mean
     intensity in the associated probe set.
+  }
+  \item{zero.line}{
+    add a red vertical line at zero on the x axis
   }
   \item{main}{
     main title for the plot.
@@ -40,8 +43,8 @@ hist.res.probeset(batch, which = 1:length(batch), res = apply.res.probeset(batch
   object of class '"histogram"'; see \link{hist}.
 }
 \references{
-  Serhal, P. and Lemieux, S. (2011). Elimination of spatial autocorrelation in microarray
-  data. Bioinformatics, submitted.
+  Serhal, P. and Lemieux, S. (2012). Correction of spatial bias in oligonucleotide array
+  data. BMC Bioinformatics, submitted.
 }
 \author{
   Philippe Serhal \email{philippe.serhal@umontreal.ca} \cr

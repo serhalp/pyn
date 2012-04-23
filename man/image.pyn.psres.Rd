@@ -36,8 +36,8 @@ image.pyn.psres(batch, which = 1:length(batch), transfo = log2, draw.legend = TR
   NULL
 }
 \references{
-  Serhal, P. and Lemieux, S. (2011). Elimination of spatial autocorrelation in microarray
-  data. Bioinformatics, submitted.
+  Serhal, P. and Lemieux, S. (2012). Correction of spatial bias in oligonucleotide array
+  data. BMC Bioinformatics, submitted.
 }
 \author{
   Philippe Serhal \email{philippe.serhal@umontreal.ca} \cr

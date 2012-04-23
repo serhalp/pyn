@@ -2,12 +2,11 @@
 \docType{data}
 \alias{gse2189}
 \title{
-  Sample dataset for 'mnf' package.
+  Sample dataset for 'pyn' package.
 }
 \description{
-  Sample dataset for the Microarray Normalization Framework (mnf) package: three
-  replicate arrays of one of six samples from GSE2189, one of which contains
-  significant spatial aberrations.
+  Sample dataset for the 'pyn' package: three replicate arrays of one of six samples from
+  GSE2189, one of which contains significant spatial aberrations.
 }
 \usage{gse2189}
 %- maybe also 'usage' for other objects documented here.

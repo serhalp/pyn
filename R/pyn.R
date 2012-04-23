@@ -1,5 +1,3 @@
-# vim:set filetype=r:
-
 serhal.lemieux.2012 <- function (batch, ...) {
     return (normalize.pyn (batch, interest = "probeset", bias = "spatial", ...))
 }
@@ -96,6 +94,8 @@ normalize.pyn <- function (batch, interest = "probeset", bias = "spatial",
     exprs (batch) <- e
     return (batch)
 }
+
+pyn <- normalize.pyn
 
 residuals.pyn.probeset <- function (values, indices, summary.stat = "mean") {
     stat.id <- switch (summary.stat,
