@@ -1,6 +1,6 @@
 // =====================================================================================
 //                              -*- Mode: C -*- 
-// mnf_funcs.h
+// pyn.h
 // Copyright 2010 Laboratoire de Bioinformatique Fonctionnelle et Structurale,
 //                Institut de recherche en immunologie et en cancerologie (IRIC),
 //                Universite de Montreal.
@@ -8,8 +8,8 @@
 //                Sebastien Lemieux (s.lemieux@umontreal.ca)
 // =====================================================================================
 
-#ifndef _MNF_FUNCS_H
-#define _MNF_FUNCS_H
+#ifndef _PYN_H
+#define _PYN_H
 
 #include <Rdefines.h>
 

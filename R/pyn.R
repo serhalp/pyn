@@ -1,18 +1,18 @@
 # vim:set filetype=r:
 
 serhal.lemieux.2012 <- function (batch, ...) {
-    return (normalize.mnf (batch, interest = "probeset", bias = "spatial", ...))
+    return (normalize.pyn (batch, interest = "probeset", bias = "spatial", ...))
 }
 
 upton.lloyd.2005 <- function (batch, ...) {
-    batch <- normalize.mnf (batch, res.pre = exprs (batch), bias = "spatial",
+    batch <- normalize.pyn (batch, res.pre = exprs (batch), bias = "spatial",
                             summary.stat.b = "min", kb = 8, do.log = FALSE,
                             do.exp = FALSE, ...)
     exprs (batch)[exprs (batch) < 0] <- 0
     return (batch)
 }
 
-normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
+normalize.pyn <- function (batch, interest = "probeset", bias = "spatial",
                            features.i = NULL, features.b = NULL, ki = 2, kb = 20,
                            summary.stat.i = "mean", summary.stat.b = "mean",
                            res.pre = NULL, do.log = TRUE, do.exp = TRUE,
@@ -40,7 +40,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
     if (do.log)
         e <- log2 (e)
 
-    normalize.mnf.array <- function (a) {
+    normalize.pyn.array <- function (a) {
         if (verbose)
             cat ("Normalizing array ", a, " of ", length (batch), "...\n", sep = "")
 
@@ -51,7 +51,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
             if (is.null (features.i)) {
                 if (verbose)
                     cat ("    Computing residuals...\n")
-                res <- residuals.mnf.probeset (e.a, indices, summary.stat.i)
+                res <- residuals.pyn.probeset (e.a, indices, summary.stat.i)
             } else {
                 stop ("'probeset' is currently the only valid value for 'interest'.")
             }
@@ -65,7 +65,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
 
         if (verbose)
             cat ("    Locating neighbours in bias space...\n")
-        neighbours <- knn.mnf (features.b.pm, as.integer (kb))
+        neighbours <- knn.pyn (features.b.pm, as.integer (kb))
 
         if (verbose)
             cat ("    Correcting values...\n")
@@ -84,7 +84,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
         # Apparently there is no other way to preserve the dimnames: matrix()
         # flattens matrix input; as.matrix() ignores 'dimnames' arg.  Argh.
         dimnames.bak <- dimnames (e)
-        e <- sapply (seq (ncol (e)), normalize.mnf.array)
+        e <- sapply (seq (ncol (e)), normalize.pyn.array)
         dimnames (e) <- dimnames.bak
     } else {
         warning ("Warning: not actually normalizing arrays, as no bias space was specified.")
@@ -97,7 +97,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
     return (batch)
 }
 
-residuals.mnf.probeset <- function (values, indices, summary.stat = "mean") {
+residuals.pyn.probeset <- function (values, indices, summary.stat = "mean") {
     stat.id <- switch (summary.stat,
                        mean = 0,
                        median = 1,
@@ -108,33 +108,33 @@ residuals.mnf.probeset <- function (values, indices, summary.stat = "mean") {
     return (.Call ("affy_residuals", indices, values, as.integer (stat.id)))
 }
 
-residuals.mnf.replicate <- function (values, samples) {
-    residuals.mnf.replicate.sample <- function (s) {
+residuals.pyn.replicate <- function (values, samples) {
+    residuals.pyn.replicate.sample <- function (s) {
         e <- values[, which (samples == s)]
         cols <- e - rowMeans (e)
         return (cols)
     }
 
-    return (do.call (cbind, lapply (unique (samples), residuals.mnf.replicate.sample)))
+    return (do.call (cbind, lapply (unique (samples), residuals.pyn.replicate.sample)))
 }
 
-knn.mnf <- function (v, k, ...) {
+knn.pyn <- function (v, k, ...) {
     if (is.vector (v) || (is.matrix (v) && dim (v) [2] == 1))
-        knn.mnf.1D (v, k, ...)
+        knn.pyn.1D (v, k, ...)
     else if ((is.matrix (v) || is.data.frame (v)) && dim (v) [2] == 2)
-        knn.mnf.2D (v[, 1], v[, 2], k, ...)
+        knn.pyn.2D (v[, 1], v[, 2], k, ...)
     else
         stop ("'v' must be a vector or a 1- or 2-column matrix")
 }
 
-knn.mnf.1D <- function (x, k) {
+knn.pyn.1D <- function (x, k) {
     n <- length (x)
     matrix (.C ("array_neighbours", as.integer (n), as.integer (x), as.integer (k),
         as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE
     ) [[4]], nrow = n, ncol = k, byrow = TRUE)
 }
 
-knn.mnf.2D <- function (x, y, k) {
+knn.pyn.2D <- function (x, y, k) {
     n <- length (x)
     matrix (.C ("grid_neighbours", as.integer (n), as.integer (x), as.integer (y),
         as.integer (k), as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE

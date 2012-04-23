@@ -1,5 +1,5 @@
-\name{image.mnf.psres}
-\alias{image.mnf.psres}
+\name{image.pyn.psres}
+\alias{image.pyn.psres}
 \title{
   Spatial distribution of probe residuals
 }
@@ -8,7 +8,7 @@
   spatial distribution.
 }
 \usage{
-image.mnf.psres(batch, which = 1:length(batch), transfo = log2, draw.legend = TRUE,
+image.pyn.psres(batch, which = 1:length(batch), transfo = log2, draw.legend = TRUE,
                 shuffle = FALSE, ...)
 }
 \arguments{
@@ -44,12 +44,12 @@ image.mnf.psres(batch, which = 1:length(batch), transfo = log2, draw.legend = TR
   Sébastien Lemieux \email{s.lemieux@umontreal.ca}
 }
 \seealso{
-  \link{normalize.mnf}, \link{hist.res.probeset}
+  \link{normalize.pyn}, \link{hist.res.probeset}
 }
 \examples{
   # Load the sample dataset and generate heat map of probe residuals.
-  data (gse2189, package = "mnf")
-  image.mnf.psres (gse2189)
+  data (gse2189, package = "pyn")
+  image.pyn.psres (gse2189)
 }
 \keyword{ ~hplot }
-\keyword{ ~mnf }
+\keyword{ ~pyn }

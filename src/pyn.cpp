@@ -1,6 +1,6 @@
 // =====================================================================================
 //                              -*- Mode: C -*- 
-// mnf_funcs.c
+// pyn.cpp
 // Copyright 2010 Laboratoire de Bioinformatique Fonctionnelle et Structurale,
 //                Institut de recherche en immunologie et en cancerologie (IRIC),
 //                Universite de Montreal.
@@ -15,7 +15,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
-#include "mnf_funcs.h"
+#include "pyn.h"
 
 void grid_neighbours (int *n, int *x, int *y, int *k, int *neighbours) {
     Grid grid = generate_grid (*n, x, y);

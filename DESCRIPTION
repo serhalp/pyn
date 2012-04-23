@@ -1,12 +1,12 @@
-Package: mnf
-Version: 0.1
-Date: 2011-09-19
-Title: Microarray Normalization Framework
+Package: pyn
+Version: 0.2
+Date: 2012-04-23
+Title: pyn: probe your neighbours
 Author: Philippe Serhal <philippe.serhal@umontreal.ca>, Sebastien Lemieux <s.lemieux@umontreal.ca>
 Maintainer: Philippe Serhal <philippe.serhal@umontreal.ca>
 Depends: affy
 Suggests: limma
 Description: Flexible microarray normalization and background correction framework;
   currently only implements a spatial bias correction for Affy chips.
-License: GPL-3
-URL: http://lemieux.iric.ca/mnf
+License: BSD
+URL: http://lemieux.iric.ca/pyn

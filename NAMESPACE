@@ -1,2 +1,2 @@
-export (serhal.lemieux.2012, upton.lloyd.2005, normalize.mnf, hist.res.probeset, image.mnf.psres)
-useDynLib (mnf)
+export (serhal.lemieux.2012, upton.lloyd.2005, normalize.pyn, hist.res.probeset, image.pyn.psres)
+useDynLib (pyn)

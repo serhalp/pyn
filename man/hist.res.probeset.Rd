@@ -48,12 +48,12 @@ hist.res.probeset(batch, which = 1:length(batch), res = apply.res.probeset(batch
   Sébastien Lemieux \email{s.lemieux@umontreal.ca}
 }
 \seealso{
-  \link{normalize.mnf}, \link{image.mnf.psres}
+  \link{normalize.pyn}, \link{image.pyn.psres}
 }
 \examples{
   # Load the sample dataset and generate histogram of probe residuals.
-  data (gse2189, package = "mnf")
+  data (gse2189, package = "pyn")
   hist.res.probeset (gse2189)
 }
 \keyword{ ~hplot }
-\keyword{ ~mnf }
+\keyword{ ~pyn }
