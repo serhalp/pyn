@@ -1,6 +1,6 @@
 // =====================================================================================
 //                              -*- Mode: C -*- 
-// mnf_funcs.c
+// pyn.cpp
 // Copyright 2010 Laboratoire de Bioinformatique Fonctionnelle et Structurale,
 //                Institut de recherche en immunologie et en cancerologie (IRIC),
 //                Universite de Montreal.
@@ -15,7 +15,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
-#include "mnf_funcs.h"
+#include "pyn.h"
 
 void grid_neighbours (int *n, int *x, int *y, int *k, int *neighbours) {
     Grid grid = generate_grid (*n, x, y);
@@ -167,8 +167,8 @@ void map_values (int *n, int *indices, double *values, double *mapped) {
             mapped[i] = values[indices[i] - 1]; // 1-offset to 0-offset
 }
 
-SEXP affy_residuals (SEXP sets, SEXP vals, SEXP _use_median) {
-    int *use_median = LOGICAL (_use_median);
+SEXP affy_residuals (SEXP sets, SEXP vals, SEXP _summary_stat) {
+    int summary_stat = *INTEGER_POINTER (_summary_stat);
     unsigned int n_ps   = length (sets), // num. of probesets
                  n_vals = length (vals); // num. of total probes
     double *p_vals = NUMERIC_POINTER (vals);
@@ -186,21 +186,40 @@ SEXP affy_residuals (SEXP sets, SEXP vals, SEXP _use_median) {
         unsigned int n_p = length (elem);
 
         double res_estimate = 0.0;
-        if (*use_median == TRUE) {
-            // Compute this probeset's median
-            double *p_ps_res = (double *) R_alloc (n_p, sizeof (double));
-            for (unsigned int p = 0; p < n_p; ++p)
-                p_ps_res[p] = p_vals[p_elem[p] - 1];
-            std::nth_element (p_ps_res, p_ps_res + (int) floor ((n_p - 1) / 2), p_ps_res + n_p);
-            double lower_median = p_ps_res[(int) floor ((n_p - 1) / 2)];
-            std::nth_element (p_ps_res, p_ps_res + (int) ceil ((n_p - 1) / 2), p_ps_res + n_p);
-            double upper_median = p_ps_res[(int) ceil ((n_p - 1) / 2)];
-            res_estimate = (lower_median + upper_median) / 2;
-        } else {
-            // Compute this probeset's arithmetic mean
-            for (unsigned int p = 0; p < n_p; ++p)
-                res_estimate += p_vals[p_elem[p] - 1];
-            res_estimate /= n_p;
+        switch (summary_stat) {
+            case MEAN:
+                for (unsigned int p = 0; p < n_p; ++p)
+                    res_estimate += p_vals[p_elem[p] - 1];
+                res_estimate /= n_p;
+                break;
+            case MEDIAN:
+                {
+                    double *p_ps_res = (double *) R_alloc (n_p, sizeof (double));
+                    for (unsigned int p = 0; p < n_p; ++p)
+                        p_ps_res[p] = p_vals[p_elem[p] - 1];
+                    std::nth_element (p_ps_res, p_ps_res + (int) floor ((n_p - 1) / 2), p_ps_res + n_p);
+                    double lower_median = p_ps_res[(int) floor ((n_p - 1) / 2)];
+                    std::nth_element (p_ps_res, p_ps_res + (int) ceil ((n_p - 1) / 2), p_ps_res + n_p);
+                    double upper_median = p_ps_res[(int) ceil ((n_p - 1) / 2)];
+                    res_estimate = (lower_median + upper_median) / 2;
+                }
+                break;
+            case MIN:
+                {
+                    double *p_ps_res = (double *) R_alloc (n_p, sizeof (double));
+                    for (unsigned int p = 0; p < n_p; ++p)
+                        p_ps_res[p] = p_vals[p_elem[p] - 1];
+                    res_estimate = *std::min_element (p_ps_res, p_ps_res + n_p);
+                }
+                break;
+            case MAX:
+                {
+                    double *p_ps_res = (double *) R_alloc (n_p, sizeof (double));
+                    for (unsigned int p = 0; p < n_p; ++p)
+                        p_ps_res[p] = p_vals[p_elem[p] - 1];
+                    res_estimate = *std::max_element (p_ps_res, p_ps_res + n_p);
+                }
+                break;
         }
 
         // Subtract res. estimate from each value in probeset to get residual

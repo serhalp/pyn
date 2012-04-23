@@ -1,15 +1,15 @@
-\name{normalize.mnf}
-\alias{normalize.mnf}
-\alias{mnf}
+\name{normalize.pyn}
+\alias{normalize.pyn}
+\alias{pyn}
 \title{
   Normalize microarray data
 }
 \description{
-  Main function of the Microarray Normalization Framework (mnf), which returns a
-  corrected ('normalized') copy of the given AffyBatch.
+  Main function of the pyn package, which returns a corrected ('normalized') copy of the
+  given AffyBatch.
 }
 \usage{
-normalize.mnf(batch, interest = "probeset", bias = "spatial",
+normalize.pyn(batch, interest = "probeset", bias = "spatial",
               features.i = NULL, features.b = NULL, ki = 2, kb = 20,
               summary.stat.i = "mean", summary.stat.b = "mean", res.pre = NULL,
               do.log = TRUE, do.exp = TRUE, verbose = TRUE)
@@ -93,24 +93,24 @@ normalize.mnf(batch, interest = "probeset", bias = "spatial",
 }
 
 \seealso{
-  \link{hist.res.probeset}, \link{image.mnf.psres}
+  \link{hist.res.probeset}, \link{image.pyn.psres}
 }
 \examples{
   # Load the sample dataset and apply spatial correction, returning a new AffyBatch.
-  data (gse2189, package = "mnf")
-  gse2189.mnf <- normalize.mnf (gse2189)
+  data (gse2189, package = "pyn")
+  gse2189.pyn <- normalize.pyn (gse2189)
 
   # Run some diagnostics: residual distribution and spatial distribution, before and
   # after spatial correction.
   par (mfrow = c (1, 2))
   hist.res.probeset (gse2189)
-  hist.res.probeset (gse2189.mnf)
-  image.mnf.psres (gse2189)
-  image.mnf.psres (gse2189.mnf)
+  hist.res.probeset (gse2189.pyn)
+  image.pyn.psres (gse2189)
+  image.pyn.psres (gse2189.pyn)
 }
 \keyword{ ~manip }
 \keyword{ ~AffyBatch }
 \keyword{ ~normalize }
-\keyword{ ~mnf }
+\keyword{ ~pyn }
 \keyword{ ~bgcorrect }
 \keyword{ ~background }

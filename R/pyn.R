@@ -1,13 +1,24 @@
 # vim:set filetype=r:
 
-# TODO: Consider default value of 'do.exp'.
-normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
+serhal.lemieux.2012 <- function (batch, ...) {
+    return (normalize.pyn (batch, interest = "probeset", bias = "spatial", ...))
+}
+
+upton.lloyd.2005 <- function (batch, ...) {
+    batch <- normalize.pyn (batch, res.pre = exprs (batch), bias = "spatial",
+                            summary.stat.b = "min", kb = 8, do.log = FALSE,
+                            do.exp = FALSE, ...)
+    exprs (batch)[exprs (batch) < 0] <- 0
+    return (batch)
+}
+
+normalize.pyn <- function (batch, interest = "probeset", bias = "spatial",
                            features.i = NULL, features.b = NULL, ki = 2, kb = 20,
                            summary.stat.i = "mean", summary.stat.b = "mean",
                            res.pre = NULL, do.log = TRUE, do.exp = TRUE,
                            verbose = TRUE) {
     # If no interest space provided, generate the requested one.
-    if (is.null (features.i)) {
+    if (is.null (features.i) && is.null (res.pre)) {
         features.i <- switch (interest,
                               probeset = NULL, # FIXME: This is not very expressive...
                               stop ("Need one of 'interest' or 'features.i'"))
@@ -21,11 +32,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
                               stop ("Need one of 'bias' or 'features.b'"))
     }
 
-    # Validate the summary statistics.
-    use.median <- switch (summary.stat.i,
-                          mean = FALSE,
-                          median = TRUE,
-                          stop ("'summary.stat.i' must be either 'mean' or 'median'"))
+    #stopifnot (summary.stat.b %in% c ("mean", "median", "min", "max"))
 
     e <- exprs (batch)
     indices <- indexProbes (batch, which = "pm")
@@ -33,7 +40,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
     if (do.log)
         e <- log2 (e)
 
-    normalize.mnf.array <- function (a) {
+    normalize.pyn.array <- function (a) {
         if (verbose)
             cat ("Normalizing array ", a, " of ", length (batch), "...\n", sep = "")
 
@@ -44,7 +51,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
             if (is.null (features.i)) {
                 if (verbose)
                     cat ("    Computing residuals...\n")
-                res <- residuals.mnf.probeset (e.a, indices, use.median)
+                res <- residuals.pyn.probeset (e.a, indices, summary.stat.i)
             } else {
                 stop ("'probeset' is currently the only valid value for 'interest'.")
             }
@@ -58,7 +65,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
 
         if (verbose)
             cat ("    Locating neighbours in bias space...\n")
-        neighbours <- knn.mnf (features.b.pm, as.integer (kb))
+        neighbours <- knn.pyn (features.b.pm, as.integer (kb))
 
         if (verbose)
             cat ("    Correcting values...\n")
@@ -77,7 +84,7 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
         # Apparently there is no other way to preserve the dimnames: matrix()
         # flattens matrix input; as.matrix() ignores 'dimnames' arg.  Argh.
         dimnames.bak <- dimnames (e)
-        e <- sapply (seq (ncol (e)), normalize.mnf.array)
+        e <- sapply (seq (ncol (e)), normalize.pyn.array)
         dimnames (e) <- dimnames.bak
     } else {
         warning ("Warning: not actually normalizing arrays, as no bias space was specified.")
@@ -90,37 +97,44 @@ normalize.mnf <- function (batch, interest = "probeset", bias = "spatial",
     return (batch)
 }
 
-residuals.mnf.probeset <- function (values, indices, use.median = FALSE) {
-    return (.Call ("affy_residuals", indices, values, as.logical (use.median)))
+residuals.pyn.probeset <- function (values, indices, summary.stat = "mean") {
+    stat.id <- switch (summary.stat,
+                       mean = 0,
+                       median = 1,
+                       min = 2,
+                       max = 3,
+                       stop ("'summary.stat.i' must be 'mean', 'median', 'min' or 'max'"))
+
+    return (.Call ("affy_residuals", indices, values, as.integer (stat.id)))
 }
 
-residuals.mnf.replicate <- function (values, samples) {
-    residuals.mnf.replicate.sample <- function (s) {
+residuals.pyn.replicate <- function (values, samples) {
+    residuals.pyn.replicate.sample <- function (s) {
         e <- values[, which (samples == s)]
         cols <- e - rowMeans (e)
         return (cols)
     }
 
-    return (do.call (cbind, lapply (unique (samples), residuals.mnf.replicate.sample)))
+    return (do.call (cbind, lapply (unique (samples), residuals.pyn.replicate.sample)))
 }
 
-knn.mnf <- function (v, k, ...) {
+knn.pyn <- function (v, k, ...) {
     if (is.vector (v) || (is.matrix (v) && dim (v) [2] == 1))
-        knn.mnf.1D (v, k, ...)
+        knn.pyn.1D (v, k, ...)
     else if ((is.matrix (v) || is.data.frame (v)) && dim (v) [2] == 2)
-        knn.mnf.2D (v[, 1], v[, 2], k, ...)
+        knn.pyn.2D (v[, 1], v[, 2], k, ...)
     else
         stop ("'v' must be a vector or a 1- or 2-column matrix")
 }
 
-knn.mnf.1D <- function (x, k) {
+knn.pyn.1D <- function (x, k) {
     n <- length (x)
     matrix (.C ("array_neighbours", as.integer (n), as.integer (x), as.integer (k),
         as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE
     ) [[4]], nrow = n, ncol = k, byrow = TRUE)
 }
 
-knn.mnf.2D <- function (x, y, k) {
+knn.pyn.2D <- function (x, y, k) {
     n <- length (x)
     matrix (.C ("grid_neighbours", as.integer (n), as.integer (x), as.integer (y),
         as.integer (k), as.integer (rep (NA, n * k)), NAOK = TRUE, DUP = FALSE

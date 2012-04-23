@@ -101,7 +101,7 @@ cor.diag <- function (batch, pos, d = 1, dx = NULL, dy = NULL, res = FALSE) {
 
     return (apply (log2 (exprs (batch)), 2, function (a) {
         if (res)
-            a <- residuals.mnf.probeset (a, indices)
+            a <- residuals.pyn.probeset (a, indices)
         pm.matrix <- res.as.matrix (a, pos)
         pm.matrix.shifted <- pm.matrix[-(1:dx), -(1:dy)]
         pm.matrix <- pm.matrix[-((nrow (pm.matrix) - dx + 1):(nrow (pm.matrix))),
@@ -112,15 +112,15 @@ cor.diag <- function (batch, pos, d = 1, dx = NULL, dy = NULL, res = FALSE) {
     }))
 }
 
-cor.window <- function (batch, pos, res = FALSE) {
+cor.window <- function (batch, pos, res = FALSE, transfo = log2) {
     if (res)
         indices <- indexProbes (batch, which = "pm")
     else
         mm (batch) <- NA
 
-    return (apply (log2 (exprs (batch)), 2, function (a) {
+    return (apply (transfo (exprs (batch)), 2, function (a) {
         if (res)
-            a <- residuals.mnf.probeset (a, indices)
+            a <- residuals.pyn.probeset (a, indices)
         pm.matrix <- res.as.matrix (a, pos)
         n <- nrow (pm.matrix)
         m <- ncol (pm.matrix)
@@ -142,23 +142,24 @@ cor.window <- function (batch, pos, res = FALSE) {
 apply.res.probeset <- function (batch) {
     indices <- indexProbes (batch, which = "pm")
     res <- sapply (1:length (batch),
-                   function (a) residuals.mnf.probeset (log2 (exprs (batch[, a])), indices))
+                   function (a) residuals.pyn.probeset (log2 (exprs (batch[, a])), indices))
     return (res)
 }
 
 hist.res.probeset <- function (batch, which = 1:length (batch),
-                               res = apply.res.probeset (batch[, which]), main = "",
-                               xlab = "Probe residuals", ylab = "Density", ...)
+                               res = apply.res.probeset (batch[, which]), zero.line = TRUE,
+                               main = "", xlab = "Probe residuals", ylab = "Density", ...)
 {
     apply (res, 2,
            function (r) {
-               hist (res, breaks = 1000, main = main, xlab = xlab, ylab = ylab,
+               hist (r, breaks = 1000, main = main, xlab = xlab, ylab = ylab,
                      prob = TRUE, ...)
-               abline (v = 0, col = "red")
+               if (zero.line)
+                   abline (v = 0, col = "red")
            })
 }
 
-image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2,
+image.pyn.psres <- function (batch, which = 1:length (batch), transfo = log2,
                              draw.legend = TRUE, shuffle = FALSE, ...) {
     grid <- indices2xy (seq (nrow (exprs (batch))), abatch = batch)
     breaks <- c (-10, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10)
@@ -169,8 +170,8 @@ image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2,
     batch.res <- batch
     indices <- indexProbes (batch, which = "pm")
 
-    image.mnf.psres.array <- function (e) {
-        col <- residuals.mnf.probeset (exprs (batch)[, e], indices)
+    image.pyn.psres.array <- function (e) {
+        col <- residuals.pyn.probeset (exprs (batch)[, e], indices)
         if (shuffle)
             col[!is.na (col)] <- sample (col[!is.na (col)])
         m <- res.as.matrix (col, grid)
@@ -178,7 +179,7 @@ image.mnf.psres <- function (batch, which = 1:length (batch), transfo = log2,
                yaxt = "n", ...)
     }
 
-    lapply (which, image.mnf.psres.array)
+    lapply (which, image.pyn.psres.array)
 
     if (draw.legend) {
         levels <- seq (min (breaks), max (breaks), length = length (cols))
@@ -203,6 +204,6 @@ autocor.plot <- function (cor.before, cor.after, s = NULL, xlim = c (0, 1), ylim
                                              pch = ifelse (s[i] == 1:length (b),
                                                            pch.solid[i], pch.empty[i]),
                                              col = col[i], ...),
-            1:length (wc), cor.before, cor.after)
+            1:length (cor.before), cor.before, cor.after)
     return (NULL)
 }
